@@ -624,6 +624,9 @@ async function exportStudentPDF() {
         .meta span { white-space: nowrap; }
         .meta b { color: #0e5e2e; }
         table { border-collapse: collapse; width: 100%; }
+        thead { display: table-header-group; }
+        tfoot { display: table-footer-group; }
+        tr { page-break-inside: avoid; }
         th, td { border: 1px solid #b9c6bd; padding: 5px 6px; font-size: 9.5px; text-align: center; }
         thead th { background: #0e5e2e; color: #ffffff; font-size: 9.5px; letter-spacing: 0.5px; padding: 7px 4px; }
         thead th:first-child { border-top-left-radius: 0; }
@@ -644,8 +647,6 @@ async function exportStudentPDF() {
         <img class="logo" src="assets/images/logo-toggle.png" alt="Logo">
         <div class="brand">
             <h1>STUDENT RATING RECORDS</h1>
-            <h2>Rubric Evaluation Report</h2>
-            <p>This document is issued by the institution's official rubric reporting system.</p>
         </div>
         <div class="date">Date of Issuance<br><b>${escHtml(today)}</b></div>
     </div>`;
@@ -679,7 +680,6 @@ async function exportStudentPDF() {
     html += '</tbody><tfoot><tr class="total"><td></td><td class="name">TOTAL (Max ${currentMaxScore} pts)</td>';
     for (let g = 1; g <= 10; g++) html += `<td>${colTotals['GROUP ' + g]}</td>`;
     html += '</tr></tfoot></table>';
-    html += '<p class="table-note">Note: Each cell represents the total score given by the rater to the corresponding group. The maximum score per group is ' + Math.round(currentMaxScore / 10) + ' points.</p>';
     html += `<div class="signatures">
         <div class="sig-block"><span class="sig-line">${escHtml(currentInstructor)}</span><div class="sig-label">PREPARED BY</div></div>
         <div class="sig-block"><span class="sig-line">&nbsp;</span><div class="sig-label">NOTED BY</div></div>
