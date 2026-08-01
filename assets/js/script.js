@@ -606,9 +606,6 @@ async function exportStudentPDF() {
     if (data.status !== 'success') { showToast('Error loading ratings', 'error'); return; }
     const ratings = data.ratings || [];
 
-    const w = window.open('', '_blank');
-    if (!w) { showToast('Please allow pop-ups to print', 'error'); return; }
-
     const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Student Ratings</title>
     <style>
@@ -641,6 +638,7 @@ async function exportStudentPDF() {
         .sig-line { display: inline-block; min-width: 220px; border-top: 1.5px solid #14202e; padding-top: 5px; font-weight: 700; font-size: 11px; letter-spacing: 0.5px; }
         .sig-label { font-size: 9.5px; color: #475569; margin-top: 3px; letter-spacing: 1px; }
         .doc-footer { text-align: center; font-size: 8.5px; color: #64748b; margin-top: 14px; }
+        .table-note { font-size: 9px; color: #475569; font-style: italic; margin: 6px 2px 0; }
     </style></head><body>`;
     html += `<div class="letterhead">
         <img class="logo" src="assets/images/logo-toggle.png" alt="Logo">
@@ -681,6 +679,7 @@ async function exportStudentPDF() {
     html += '</tbody><tfoot><tr class="total"><td></td><td class="name">TOTAL (Max ${currentMaxScore} pts)</td>';
     for (let g = 1; g <= 10; g++) html += `<td>${colTotals['GROUP ' + g]}</td>`;
     html += '</tr></tfoot></table>';
+    html += '<p class="table-note">Note: Each cell represents the total score given by the rater to the corresponding group. The maximum score per group is ' + Math.round(currentMaxScore / 10) + ' points.</p>';
     html += `<div class="signatures">
         <div class="sig-block"><span class="sig-line">${escHtml(currentInstructor)}</span><div class="sig-label">PREPARED BY</div></div>
         <div class="sig-block"><span class="sig-line">&nbsp;</span><div class="sig-label">NOTED BY</div></div>
@@ -688,10 +687,34 @@ async function exportStudentPDF() {
     html += '<div class="doc-footer">This document was generated automatically by the Rubric System on ' + escHtml(today) + '.</div>';
     html += '</body></html>';
 
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    setTimeout(function () { try { w.print(); } catch (e) { } }, 500);
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+    document.body.appendChild(frame);
+    const fdoc = frame.contentWindow.document;
+    fdoc.open();
+    fdoc.write(html);
+    fdoc.close();
+    const doPrint = () => {
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+        setTimeout(() => { if (frame.parentNode) frame.parentNode.removeChild(frame); }, 1500);
+    };
+    const imgs = fdoc.images;
+    if (imgs.length) {
+        let pending = imgs.length;
+        for (let i = 0; i < imgs.length; i++) {
+            const img = imgs[i];
+            if (img.complete) { pending--; }
+            else {
+                img.addEventListener('load', () => { pending--; if (pending === 0) doPrint(); });
+                img.addEventListener('error', () => { pending--; if (pending === 0) doPrint(); });
+            }
+        }
+        if (pending === 0) doPrint();
+    } else {
+        setTimeout(doPrint, 250);
+    }
 }
 
 // ========== STUDENT DETAIL MODAL ==========
