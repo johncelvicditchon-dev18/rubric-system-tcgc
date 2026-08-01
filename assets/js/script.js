@@ -653,8 +653,7 @@ async function exportStudentPDF() {
     html += `<div class="meta">
         <span><b>INSTRUCTOR:</b> ${escHtml(currentInstructor)}</span>
         <span><b>SECTION:</b> ${escHtml(currentSection || 'N/A')}</span>
-        <span><b>MAX SCORE:</b> 40 pts per group</span>
-        <span><b>GROUPS:</b> 10</span>
+        <span><b>MAX SCORE:</b> ${currentMaxScore} pts</span>
         <span><b>RATERS:</b> ${ratings.length}</span>
     </div>`;
     html += '<table><thead><tr><th style="width:26px;">#</th><th style="text-align:left;">NAME OF THE RATER</th>';
@@ -677,8 +676,8 @@ async function exportStudentPDF() {
         }
         html += '</tr>';
     });
-    html += '</tbody><tfoot><tr class="total"><td></td><td class="name">TOTAL SCORE PER GROUP (Max ' + currentMaxScore + ' pts)</td>';
-    for (let g = 1; g <= 10; g++) html += `<td>${colTotals['GROUP ' + g]}</td>`;
+    html += '</tbody><tfoot><tr class="total"><td></td><td class="name">TOTAL SCORE: ' + currentMaxScore + '</td>';
+    for (let g = 1; g <= 10; g++) html += `<td>${colTotals['GROUP ' + g]}/${currentMaxScore}</td>`;
     html += '</tr></tfoot></table>';
     html += `<div class="signatures">
         <div class="sig-block"><span class="sig-line">${escHtml(currentInstructor)}</span><div class="sig-label">PREPARED BY</div></div>
