@@ -89,6 +89,14 @@ const Api = (() => {
         };
     }
 
+    function pickGroupDoc(docs, instructor, section, groupName) {
+        const targetId = groupDocId(instructor, section, groupName);
+        const canonical = docs.find(d => d.id === targetId);
+        if (canonical) return canonical;
+        if (section) return docs.find(d => d.section === section) || null;
+        return docs.find(d => d.section === '') || docs[0] || null;
+    }
+
     return {
         // ===== ACCOUNTS =====
         async login(username, password) {
@@ -221,9 +229,46 @@ const Api = (() => {
                 if (new_section_name && new_section_name !== section_name) {
                     const dup = await firstDoc(COLL_SECTIONS, [['instructor', '==', instructor], ['section_name', '==', new_section_name]]);
                     if (dup) return { status: 'error', message: 'Section name already exists' };
-                    await updateWhere(COLL_GROUPS, [['instructor', '==', instructor], ['section', '==', section_name]], { section: new_section_name });
-                    await updateWhere(COLL_RATINGS, [['instructor', '==', instructor], ['section', '==', section_name]], { section: new_section_name });
-                    await db.collection(COLL_SECTIONS).doc(existing.id).update({ section_name: new_section_name, max_score: maxSc });
+
+                    const oldGroups = await queryWhere(COLL_GROUPS, [['instructor', '==', instructor], ['section', '==', section_name]]);
+                    for (const g of oldGroups) {
+                        const newId = groupDocId(instructor, new_section_name, g.group_name);
+                        if (g.id === newId) {
+                            await db.collection(COLL_GROUPS).doc(g.id).update({ section: new_section_name });
+                        } else {
+                            const newData = Object.assign({}, g);
+                            delete newData.id;
+                            newData.section = new_section_name;
+                            await db.collection(COLL_GROUPS).doc(newId).set(newData);
+                            await db.collection(COLL_GROUPS).doc(g.id).delete();
+                        }
+                    }
+
+                    const oldRatings = await queryWhere(COLL_RATINGS, [['instructor', '==', instructor], ['section', '==', section_name]]);
+                    for (const r of oldRatings) {
+                        const newId = ratingDocId(r.rater_name, r.group_name, new_section_name);
+                        if (r.id === newId) {
+                            await db.collection(COLL_RATINGS).doc(r.id).update({ section: new_section_name });
+                        } else {
+                            const newData = Object.assign({}, r);
+                            delete newData.id;
+                            newData.section = new_section_name;
+                            await db.collection(COLL_RATINGS).doc(newId).set(newData);
+                            await db.collection(COLL_RATINGS).doc(r.id).delete();
+                        }
+                    }
+
+                    const newSecId = sectionDocId(instructor, new_section_name);
+                    if (existing.id !== newSecId) {
+                        await db.collection(COLL_SECTIONS).doc(newSecId).set({
+                            instructor: instructor,
+                            section_name: new_section_name,
+                            max_score: maxSc
+                        });
+                        await db.collection(COLL_SECTIONS).doc(existing.id).delete();
+                    } else {
+                        await db.collection(COLL_SECTIONS).doc(existing.id).update({ max_score: maxSc });
+                    }
                 } else {
                     await db.collection(COLL_SECTIONS).doc(existing.id).update({ max_score: maxSc });
                 }
@@ -270,7 +315,7 @@ const Api = (() => {
             });
             const response = {};
             GROUP_NAMES.forEach(gn => {
-                const g = groups.find(x => x.group_name === gn) || {};
+                const g = pickGroupDoc(groups, instructor, section, gn) || {};
                 const sum = sums[gn] || { total: 0, count: 0 };
                 response[gn] = {
                     group_name: gn,
@@ -294,17 +339,22 @@ const Api = (() => {
             const docs = await queryWhere(COLL_GROUPS, conds);
             const status = {};
             GROUP_NAMES.forEach(gn => { status[gn] = 0; });
-            docs.forEach(d => { status[d.group_name] = d.is_closed ? 1 : 0; });
+            docs.forEach(d => {
+                const chosen = pickGroupDoc(docs, instructor, section, d.group_name);
+                if (chosen && chosen.id === d.id) {
+                    status[d.group_name] = d.is_closed ? 1 : 0;
+                }
+            });
             return { status: 'success', groups: status };
         },
 
         async saveGroupMembers(instructor, group_name, section, m1, m2, m3, m4, m5) {
             if (!instructor || !group_name) return { status: 'error', message: 'instructor and group_name required' };
             const members = [m1, m2, m3, m4, m5].map(m => String(m || '').trim().toUpperCase());
-            const ref = db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, group_name));
-            const doc = await ref.get();
-            if (doc.exists) {
-                const oldNames = MEMBER_FIELDS.map(f => String(doc.data()[f] || '').trim().toUpperCase());
+            const docs = await queryWhere(COLL_GROUPS, [['instructor', '==', instructor], ['group_name', '==', group_name]]);
+            const existing = pickGroupDoc(docs, instructor, section, group_name);
+            if (existing) {
+                const oldNames = MEMBER_FIELDS.map(f => String(existing[f] || '').trim().toUpperCase());
                 const upd = {
                     member1_name: members[0],
                     member2_name: members[1],
@@ -312,7 +362,7 @@ const Api = (() => {
                     member4_name: members[3],
                     member5_name: members[4]
                 };
-                await ref.update(upd);
+                await db.collection(COLL_GROUPS).doc(existing.id).update(upd);
                 for (let i = 0; i < 5; i++) {
                     const o = oldNames[i], n = members[i];
                     if (o && n && o !== n) {
@@ -326,23 +376,23 @@ const Api = (() => {
                 data.member3_name = members[2];
                 data.member4_name = members[3];
                 data.member5_name = members[4];
-                await ref.set(data);
+                await db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, group_name)).set(data);
             }
             return { status: 'success', message: 'Members saved successfully' };
         },
 
         async toggleGroupStatus(instructor, group_name, section) {
             if (!instructor || !group_name) return { status: 'error', message: 'instructor and group_name required' };
-            const ref = db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, group_name));
-            const doc = await ref.get();
-            if (doc.exists) {
-                const newStatus = doc.data().is_closed ? 0 : 1;
-                await ref.update({ is_closed: newStatus });
+            const docs = await queryWhere(COLL_GROUPS, [['instructor', '==', instructor], ['group_name', '==', group_name]]);
+            const existing = pickGroupDoc(docs, instructor, section, group_name);
+            if (existing) {
+                const newStatus = existing.is_closed ? 0 : 1;
+                await db.collection(COLL_GROUPS).doc(existing.id).update({ is_closed: newStatus });
                 return { status: 'success', is_closed: newStatus, message: newStatus ? 'Group closed' : 'Group opened' };
             }
             const data = emptyGroupData(instructor, section, group_name);
             data.is_closed = 1;
-            await ref.set(data);
+            await db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, group_name)).set(data);
             return { status: 'success', is_closed: 1, message: 'Group closed' };
         },
 
