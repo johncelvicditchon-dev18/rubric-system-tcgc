@@ -1839,7 +1839,29 @@ body {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(17,92,46,0.15);
 }
-#developerModal.modal-overlay { background: white; backdrop-filter: none; -webkit-backdrop-filter: none; }
+#developerModal.modal-overlay {
+  background: white;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  animation: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+#developerModal.modal-overlay.dev-open {
+  display: flex;
+  opacity: 1;
+  pointer-events: auto;
+}
+#developerModal.modal-overlay .developer-modal {
+  transform: translateY(26px) scale(0.95);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+}
+#developerModal.modal-overlay.dev-open .developer-modal {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
 .developer-modal { width: 380px; max-width: 90vw; text-align: center; box-shadow: none; }
 .developer-modal .modal-header { justify-content: center; position: relative; }
 .developer-modal .modal-header .modal-close { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); }
@@ -2272,6 +2294,24 @@ body {
 .dev-fab:active {
   transform: scale(0.95);
 }
+.dev-fab .dev-fab-tip {
+  position: absolute;
+  right: 56px;
+  background: rgba(17,92,46,0.95);
+  color: #fff;
+  font-size: 11px;
+  letter-spacing: 1px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(6px);
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+.dev-fab:hover .dev-fab-tip { opacity: 1; transform: translateX(0); }
 
 .btn-pdf {
   display: inline-flex;

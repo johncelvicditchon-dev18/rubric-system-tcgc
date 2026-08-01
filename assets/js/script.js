@@ -1137,12 +1137,12 @@ function closeResetModal(e) {
 // ========== DEVELOPER DETAILS MODAL ==========
 function openDeveloperModal(e) {
     if (e) e.preventDefault();
-    document.getElementById('developerModal').style.display = 'flex';
+    document.getElementById('developerModal').classList.add('dev-open');
 }
 
 function closeDeveloperModal(e) {
     if (e && e.target !== e.currentTarget) return;
-    document.getElementById('developerModal').style.display = 'none';
+    document.getElementById('developerModal').classList.remove('dev-open');
 }
 
 async function confirmResetRatings() {
