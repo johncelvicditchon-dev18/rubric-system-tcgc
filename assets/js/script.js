@@ -653,7 +653,7 @@ async function exportStudentPDF() {
     html += `<div class="meta">
         <span><b>INSTRUCTOR:</b> ${escHtml(currentInstructor)}</span>
         <span><b>SECTION:</b> ${escHtml(currentSection || 'N/A')}</span>
-        <span><b>MAX SCORE:</b> ${currentMaxScore} pts</span>
+        <span><b>MAX SCORE:</b> ${currentMaxScore} pts (40 pts per group)</span>
         <span><b>GROUPS:</b> 10</span>
         <span><b>RATERS:</b> ${ratings.length}</span>
     </div>`;
@@ -669,7 +669,7 @@ async function exportStudentPDF() {
             const gn = 'GROUP ' + g;
             const score = r[gn];
             if (score !== null && score !== undefined) {
-                html += `<td>${score}</td>`;
+                html += `<td>${score}/40</td>`;
                 colTotals[gn] += score;
             } else {
                 html += '<td>&ndash;</td>';
