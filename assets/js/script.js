@@ -624,8 +624,8 @@ async function exportStudentPDF() {
         .meta span { white-space: nowrap; }
         .meta b { color: #0e5e2e; }
         table { border-collapse: collapse; width: 100%; }
-        thead { display: table-header-group; }
-        tfoot { display: table-footer-group; }
+        thead { display: table-row-group; }
+        tfoot { display: table-row-group; }
         tr { page-break-inside: avoid; }
         th, td { border: 1px solid #b9c6bd; padding: 5px 6px; font-size: 9.5px; text-align: center; }
         thead th { background: #0e5e2e; color: #ffffff; font-size: 9.5px; letter-spacing: 0.5px; padding: 7px 4px; }
@@ -653,7 +653,7 @@ async function exportStudentPDF() {
     html += `<div class="meta">
         <span><b>INSTRUCTOR:</b> ${escHtml(currentInstructor)}</span>
         <span><b>SECTION:</b> ${escHtml(currentSection || 'N/A')}</span>
-        <span><b>MAX SCORE:</b> ${currentMaxScore} pts (40 pts per group)</span>
+        <span><b>MAX SCORE:</b> 40 pts per group</span>
         <span><b>GROUPS:</b> 10</span>
         <span><b>RATERS:</b> ${ratings.length}</span>
     </div>`;
@@ -677,7 +677,7 @@ async function exportStudentPDF() {
         }
         html += '</tr>';
     });
-    html += '</tbody><tfoot><tr class="total"><td></td><td class="name">TOTAL (Max ${currentMaxScore} pts)</td>';
+    html += '</tbody><tfoot><tr class="total"><td></td><td class="name">TOTAL SCORE PER GROUP (Max ' + currentMaxScore + ' pts)</td>';
     for (let g = 1; g <= 10; g++) html += `<td>${colTotals['GROUP ' + g]}</td>`;
     html += '</tr></tfoot></table>';
     html += `<div class="signatures">
