@@ -612,23 +612,53 @@ async function exportStudentPDF() {
     const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Student Ratings</title>
     <style>
-        @page { size: legal landscape; margin: 10mm; }
-        body { font-family: Arial, Helvetica, sans-serif; color: #1a2332; margin: 0; }
-        .print-header { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #115c2e; padding-bottom: 8px; margin-bottom: 10px; }
-        .print-header img { height: 44px; }
-        .print-header h1 { font-size: 20px; margin: 0; color: #0a1e14; }
-        .info { text-align: center; font-size: 11px; margin-bottom: 8px; }
+        @page { size: legal landscape; margin: 12mm 14mm 14mm 14mm; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Arial, Helvetica, sans-serif; color: #14202e; margin: 0; font-size: 10px; }
+        .letterhead { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px double #0e5e2e; padding-bottom: 10px; margin-bottom: 6px; }
+        .letterhead .logo { height: 58px; }
+        .letterhead .brand { text-align: center; }
+        .letterhead .brand h1 { margin: 0; font-size: 21px; letter-spacing: 2px; color: #0e5e2e; font-weight: 800; }
+        .letterhead .brand h2 { margin: 2px 0 0; font-size: 11px; font-weight: 600; color: #334155; letter-spacing: 1px; text-transform: uppercase; }
+        .letterhead .brand p { margin: 4px 0 0; font-size: 9px; color: #64748b; }
+        .letterhead .date { text-align: right; font-size: 9.5px; color: #334155; line-height: 1.6; }
+        .letterhead .date b { display: block; font-size: 10px; color: #14202e; }
+        .meta { display: flex; justify-content: space-between; gap: 10px; background: #f0f7f2; border: 1px solid #cfe3d6; border-radius: 6px; padding: 6px 12px; margin-bottom: 10px; font-size: 10.5px; color: #1c2b3a; }
+        .meta span { white-space: nowrap; }
+        .meta b { color: #0e5e2e; }
         table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #b4beb4; padding: 3px 4px; font-size: 9px; text-align: center; }
-        th { background: #115c2e; color: #fff; }
-        td.name { text-align: left; }
-        tr.alt td { background: #f5f5f5; }
-        tr.total td { background: #115c2e; color: #fff; font-weight: bold; }
-        .footer { text-align: center; font-size: 8px; margin-top: 12px; color: #333; }
+        th, td { border: 1px solid #b9c6bd; padding: 5px 6px; font-size: 9.5px; text-align: center; }
+        thead th { background: #0e5e2e; color: #ffffff; font-size: 9.5px; letter-spacing: 0.5px; padding: 7px 4px; }
+        thead th:first-child { border-top-left-radius: 0; }
+        tbody td { font-variant-numeric: tabular-nums; }
+        td.name { text-align: left; font-weight: 600; color: #1c2b3a; white-space: nowrap; }
+        tr.alt td { background: #f3f7f4; }
+        tbody tr:hover td { background: #e6f2ea; }
+        tr.total td { background: #0e5e2e; color: #ffffff; font-weight: bold; font-size: 10px; padding: 7px 6px; }
+        tr.total td.name { text-align: left; }
+        .signatures { display: flex; justify-content: space-between; margin-top: 34px; padding: 0 10px; }
+        .sig-block { text-align: center; }
+        .sig-line { display: inline-block; min-width: 220px; border-top: 1.5px solid #14202e; padding-top: 5px; font-weight: 700; font-size: 11px; letter-spacing: 0.5px; }
+        .sig-label { font-size: 9.5px; color: #475569; margin-top: 3px; letter-spacing: 1px; }
+        .doc-footer { text-align: center; font-size: 8.5px; color: #64748b; margin-top: 14px; }
     </style></head><body>`;
-    html += `<div class="print-header"><img src="assets/images/logo-toggle.png" alt="Logo"><h1>STUDENT RATING RECORDS</h1></div>`;
-    html += `<div class="info">Instructor: ${escHtml(currentInstructor)} &nbsp;|&nbsp; Section: ${escHtml(currentSection || 'N/A')} &nbsp;|&nbsp; Date: ${today}</div>`;
-    html += '<table><thead><tr><th>#</th><th>NAME OF THE RATER</th>';
+    html += `<div class="letterhead">
+        <img class="logo" src="assets/images/logo-toggle.png" alt="Logo">
+        <div class="brand">
+            <h1>STUDENT RATING RECORDS</h1>
+            <h2>Rubric Evaluation Report</h2>
+            <p>This document is issued by the institution's official rubric reporting system.</p>
+        </div>
+        <div class="date">Date of Issuance<br><b>${escHtml(today)}</b></div>
+    </div>`;
+    html += `<div class="meta">
+        <span><b>INSTRUCTOR:</b> ${escHtml(currentInstructor)}</span>
+        <span><b>SECTION:</b> ${escHtml(currentSection || 'N/A')}</span>
+        <span><b>MAX SCORE:</b> ${currentMaxScore} pts</span>
+        <span><b>GROUPS:</b> 10</span>
+        <span><b>RATERS:</b> ${ratings.length}</span>
+    </div>`;
+    html += '<table><thead><tr><th style="width:26px;">#</th><th style="text-align:left;">NAME OF THE RATER</th>';
     for (let i = 1; i <= 10; i++) html += `<th>GROUP ${i}</th>`;
     html += '</tr></thead><tbody>';
 
@@ -640,18 +670,22 @@ async function exportStudentPDF() {
             const gn = 'GROUP ' + g;
             const score = r[gn];
             if (score !== null && score !== undefined) {
-                html += `<td>${score}/40</td>`;
+                html += `<td>${score}</td>`;
                 colTotals[gn] += score;
             } else {
-                html += '<td>-</td>';
+                html += '<td>&ndash;</td>';
             }
         }
         html += '</tr>';
     });
-    html += '</tbody><tfoot><tr class="total"><td></td><td>TOTAL | Max Score: ' + currentMaxScore + '</td>';
-    for (let g = 1; g <= 10; g++) html += `<td>${colTotals['GROUP ' + g]}/${currentMaxScore}</td>`;
+    html += '</tbody><tfoot><tr class="total"><td></td><td class="name">TOTAL (Max ${currentMaxScore} pts)</td>';
+    for (let g = 1; g <= 10; g++) html += `<td>${colTotals['GROUP ' + g]}</td>`;
     html += '</tr></tfoot></table>';
-    html += '<div class="footer">This document was generated automatically by the Rubric System.</div>';
+    html += `<div class="signatures">
+        <div class="sig-block"><span class="sig-line">${escHtml(currentInstructor)}</span><div class="sig-label">PREPARED BY</div></div>
+        <div class="sig-block"><span class="sig-line">&nbsp;</span><div class="sig-label">NOTED BY</div></div>
+    </div>`;
+    html += '<div class="doc-footer">This document was generated automatically by the Rubric System on ' + escHtml(today) + '.</div>';
     html += '</body></html>';
 
     w.document.write(html);
