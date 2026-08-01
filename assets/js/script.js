@@ -1024,8 +1024,8 @@ async function loadPendingAccounts() {
                     <td>${a.instructor_name}</td>
                     <td>${a.username}</td>
                     <td>
-                        <button class="btn-approve" onclick="approveAccount(${a.id})"><i class="fas fa-check"></i> Approve</button>
-                        <button class="btn-delete" onclick="deletePendingAccount(${a.id})"><i class="fas fa-trash"></i> Delete</button>
+                        <button class="btn-approve" onclick="approveAccount('${a.id}')"><i class="fas fa-check"></i> Approve</button>
+                        <button class="btn-delete" onclick="deletePendingAccount('${a.id}')"><i class="fas fa-trash"></i> Delete</button>
                     </td>
                 </tr>
             `).join('');
