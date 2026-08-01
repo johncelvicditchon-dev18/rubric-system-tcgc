@@ -93,8 +93,9 @@ const Api = (() => {
         const targetId = groupDocId(instructor, section, groupName);
         const canonical = docs.find(d => d.id === targetId);
         if (canonical) return canonical;
-        if (section) return docs.find(d => d.section === section) || null;
-        return docs.find(d => d.section === '') || docs[0] || null;
+        const sameName = docs.filter(d => d.group_name === groupName);
+        if (section) return sameName.find(d => d.section === section) || null;
+        return sameName.find(d => d.section === '') || sameName[0] || null;
     }
 
     return {
