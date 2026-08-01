@@ -15,8 +15,7 @@ async function loadSectionDropdown() {
     if (!sel) return;
     const prevVal = sel.value || currentSection;
     try {
-        const res = await fetch(`php/get_sections.php?instructor=${encodeURIComponent(currentInstructor)}`);
-        const data = await res.json();
+        const data = await Api.getSections(currentInstructor);
         sel.innerHTML = '';
         if (data.status === 'success') {
             data.sections.forEach(s => {
@@ -41,8 +40,7 @@ async function onSectionSelect() {
     currentSection = sec;
     if (sec) {
         try {
-            const res = await fetch(`php/get_section_config.php?instructor=${encodeURIComponent(currentInstructor)}&section_name=${encodeURIComponent(sec)}`);
-            const data = await res.json();
+            const data = await Api.getSectionConfig(currentInstructor, sec);
             if (data.status === 'success') currentMaxScore = data.max_score || 1000;
         } catch (e) {
             console.error('onSectionSelect config error:', e);
@@ -67,13 +65,8 @@ async function addNewSection() {
     const name = document.getElementById('newSectionInput').value.trim().toUpperCase();
     if (!name) { showToast('Enter a section name', 'error'); return; }
     const maxSc = parseInt(document.getElementById('newSectionMaxInput').value) || 1000;
-    const formData = new FormData();
-    formData.append('instructor', currentInstructor);
-    formData.append('section_name', name);
-    formData.append('max_score', maxSc);
     try {
-        const res = await fetch('php/save_section_config.php', { method: 'POST', body: formData });
-        const data = await res.json();
+        const data = await Api.saveSectionConfig(currentInstructor, name, '', maxSc);
         if (data.status === 'success') {
             showToast('Section "' + name + '" created', 'success');
             document.getElementById('newSectionInput').value = '';
@@ -114,8 +107,7 @@ async function restoreSectionState() {
             sel.value = currentSection;
         }
         try {
-            const res = await fetch(`php/get_section_config.php?instructor=${encodeURIComponent(currentInstructor)}&section_name=${encodeURIComponent(currentSection)}`);
-            const data = await res.json();
+            const data = await Api.getSectionConfig(currentInstructor, currentSection);
             if (data.status === 'success') {
                 currentMaxScore = data.max_score || 1000;
             }
@@ -179,8 +171,7 @@ function toggleStudentNameField() {
 
 async function loadStudentSections() {
     try {
-        const res = await fetch('php/get_all_sections.php');
-        const data = await res.json();
+        const data = await Api.getAllSections();
         const sel = document.getElementById('loginStudentSection');
         if (!sel) return;
         sel.innerHTML = '<option value="">-- Select Section --</option>';
@@ -225,12 +216,7 @@ async function handleLogin(e) {
         }
 
         try {
-            const res = await fetch('php/login.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `action=login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
-            });
-            const data = await res.json();
+            const data = await Api.login(username, password);
 
             if (data.status === 'success') {
                 sessionStorage.setItem('userRole', 'instructor');
@@ -257,12 +243,7 @@ async function handleLogin(e) {
         if (!section) { showToast('Please select your section', 'error'); return; }
 
         try {
-            const res = await fetch('php/student_login.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `name=${encodeURIComponent(name)}&section=${encodeURIComponent(section)}`
-            });
-            const data = await res.json();
+            const data = await Api.studentLogin(name, section);
 
             if (data.status === 'success') {
                 sessionStorage.setItem('userRole', 'student');
@@ -296,12 +277,7 @@ async function handleSignup(e) {
     if (!name || !username || !password) { showToast('Please fill in all fields', 'error'); return; }
 
     try {
-        const res = await fetch('php/signup.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `action=signup&name=${encodeURIComponent(name)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
-        });
-        const data = await res.json();
+        const data = await Api.signup(name, username, password);
 
         if (data.status === 'success') {
             showToast('Account created! Awaiting instructor approval.', 'success');
@@ -396,16 +372,14 @@ async function initStudentDashboard() {
     studentCurrentGroup = null;
 
     try {
-        const res = await fetch(`php/get_my_ratings.php?rater_name=${encodeURIComponent(currentUserName)}&section=${encodeURIComponent(currentStudentSection)}`);
-        const data = await res.json();
+        const data = await Api.getMyRatings(currentUserName, currentStudentSection);
         studentRatings = data.status === 'success' ? data.ratings : {};
     } catch (e) {
         studentRatings = {};
     }
 
     try {
-        const res = await fetch(`php/get_group_status.php?instructor=${encodeURIComponent(currentInstructor)}&section=${encodeURIComponent(currentStudentSection)}`);
-        const data = await res.json();
+        const data = await Api.getGroupStatus(currentInstructor, currentStudentSection);
         studentGroupStatus = data.status === 'success' ? data.groups : {};
     } catch (e) {
         studentGroupStatus = {};
@@ -532,19 +506,14 @@ async function handleSaveStudentRating() {
     });
 
     try {
-        const res = await fetch('php/save_group_rating.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                rater_name: currentUserName,
-                group_name: studentCurrentGroup,
-                scores: scores,
-                total_score: total,
-                instructor: currentInstructor,
-                section: currentStudentSection || ''
-            })
+        const data = await Api.saveGroupRating({
+            rater_name: currentUserName,
+            group_name: studentCurrentGroup,
+            scores: scores,
+            total_score: total,
+            instructor: currentInstructor,
+            section: currentStudentSection || ''
         });
-        const data = await res.json();
 
         if (data.status === 'success') {
             showToast('Rating saved!', 'success');
@@ -559,10 +528,8 @@ async function handleSaveStudentRating() {
 
 // ========== ADMIN: STUDENT RATINGS TABLE ==========
 async function loadStudentRatingsTable() {
-    const params = `instructor=${encodeURIComponent(currentInstructor)}&section=${encodeURIComponent(currentSection)}`;
     try {
-        const res = await fetch(`php/get_student_ratings_table.php?${params}`);
-        const data = await res.json();
+        const data = await Api.getStudentRatingsTable(currentInstructor, currentSection);
 
         if (data.status === 'success') {
             renderStudentRatingsTable(data.ratings);
@@ -628,21 +595,69 @@ function renderStudentRatingsTable(ratings) {
     }
 }
 
-// ========== EXPORT PDF ==========
-function exportStudentPDF() {
+// ========== EXPORT PDF (Bond Paper Print) ==========
+function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function exportStudentPDF() {
     if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
-    const url = `php/export_student_pdf.php?instructor=${encodeURIComponent(currentInstructor)}&section=${encodeURIComponent(currentSection)}&max_score=${currentMaxScore}`;
-    const iframe = document.createElement('iframe');
-    iframe.style.width = '1px';
-    iframe.style.height = '1px';
-    iframe.style.position = 'fixed';
-    iframe.style.left = '-9999px';
-    iframe.style.top = '-9999px';
-    iframe.src = url;
-    document.body.appendChild(iframe);
-    iframe.onload = function () {
-        setTimeout(function () { try { iframe.contentWindow.print(); } catch (e) { window.open(url, '_blank'); } }, 1500);
-    };
+    const data = await Api.getStudentRatingsTable(currentInstructor, currentSection);
+    if (data.status !== 'success') { showToast('Error loading ratings', 'error'); return; }
+    const ratings = data.ratings || [];
+
+    const w = window.open('', '_blank');
+    if (!w) { showToast('Please allow pop-ups to print', 'error'); return; }
+
+    const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Student Ratings</title>
+    <style>
+        @page { size: legal landscape; margin: 10mm; }
+        body { font-family: Arial, Helvetica, sans-serif; color: #1a2332; margin: 0; }
+        .print-header { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #115c2e; padding-bottom: 8px; margin-bottom: 10px; }
+        .print-header img { height: 44px; }
+        .print-header h1 { font-size: 20px; margin: 0; color: #0a1e14; }
+        .info { text-align: center; font-size: 11px; margin-bottom: 8px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #b4beb4; padding: 3px 4px; font-size: 9px; text-align: center; }
+        th { background: #115c2e; color: #fff; }
+        td.name { text-align: left; }
+        tr.alt td { background: #f5f5f5; }
+        tr.total td { background: #115c2e; color: #fff; font-weight: bold; }
+        .footer { text-align: center; font-size: 8px; margin-top: 12px; color: #333; }
+    </style></head><body>`;
+    html += `<div class="print-header"><img src="assets/images/logo-toggle.png" alt="Logo"><h1>STUDENT RATING RECORDS</h1></div>`;
+    html += `<div class="info">Instructor: ${escHtml(currentInstructor)} &nbsp;|&nbsp; Section: ${escHtml(currentSection || 'N/A')} &nbsp;|&nbsp; Date: ${today}</div>`;
+    html += '<table><thead><tr><th>#</th><th>NAME OF THE RATER</th>';
+    for (let i = 1; i <= 10; i++) html += `<th>GROUP ${i}</th>`;
+    html += '</tr></thead><tbody>';
+
+    const colTotals = {};
+    for (let i = 1; i <= 10; i++) colTotals['GROUP ' + i] = 0;
+    ratings.forEach((r, idx) => {
+        html += `<tr class="${(idx % 2) ? 'alt' : ''}"><td>${idx + 1}</td><td class="name">${escHtml(r.name)}</td>`;
+        for (let g = 1; g <= 10; g++) {
+            const gn = 'GROUP ' + g;
+            const score = r[gn];
+            if (score !== null && score !== undefined) {
+                html += `<td>${score}/40</td>`;
+                colTotals[gn] += score;
+            } else {
+                html += '<td>-</td>';
+            }
+        }
+        html += '</tr>';
+    });
+    html += '</tbody><tfoot><tr class="total"><td></td><td>TOTAL | Max Score: ' + currentMaxScore + '</td>';
+    for (let g = 1; g <= 10; g++) html += `<td>${colTotals['GROUP ' + g]}/${currentMaxScore}</td>`;
+    html += '</tr></tfoot></table>';
+    html += '<div class="footer">This document was generated automatically by the Rubric System.</div>';
+    html += '</body></html>';
+
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(function () { try { w.print(); } catch (e) { } }, 500);
 }
 
 // ========== STUDENT DETAIL MODAL ==========
@@ -677,8 +692,7 @@ function closeStudentDetail(e) {
 
 async function loadStudentDetail(name) {
     try {
-        const res = await fetch(`php/get_student_detail.php?rater_name=${encodeURIComponent(name)}&instructor=${encodeURIComponent(currentInstructor)}&section=${encodeURIComponent(currentSection)}`);
-        const data = await res.json();
+        const data = await Api.getStudentDetail(name, currentInstructor, currentSection);
         if (data.status === 'success') {
             renderStudentDetail(data.ratings);
         } else {
@@ -731,8 +745,7 @@ function renderStudentDetail(ratings) {
 // ========== ADMIN: RATER LIST ==========
 async function loadRaterList() {
     try {
-        const res = await fetch(`php/get_rater_list.php?instructor=${encodeURIComponent(currentInstructor)}&section=${encodeURIComponent(currentSection)}`);
-        const data = await res.json();
+        const data = await Api.getRaterList(currentInstructor, currentSection);
         if (data.status === 'success') {
             renderRaterList(data.raters);
         } else {
@@ -807,8 +820,7 @@ function filterRaterList() {
 // ========== SECTIONS MANAGEMENT ==========
 async function loadSectionsManagement() {
     try {
-        const res = await fetch(`php/get_sections.php?instructor=${encodeURIComponent(currentInstructor)}`);
-        const data = await res.json();
+        const data = await Api.getSections(currentInstructor);
         const tbody = document.getElementById('sectionsTableBody');
         const noData = document.getElementById('noSections');
         if (!tbody) return;
@@ -836,14 +848,8 @@ async function saveSectionRow(oldName) {
     const newName = document.getElementById('sec_name_' + sid).value.trim().toUpperCase();
     const maxScore = parseInt(document.getElementById('sec_max_' + sid).value) || 1000;
     if (!newName) { showToast('Section name cannot be empty', 'error'); return; }
-    const formData = new FormData();
-    formData.append('instructor', currentInstructor);
-    formData.append('section_name', oldName);
-    formData.append('new_section_name', newName);
-    formData.append('max_score', maxScore);
     try {
-        const res = await fetch('php/save_section_config.php', { method: 'POST', body: formData });
-        const data = await res.json();
+        const data = await Api.saveSectionConfig(currentInstructor, oldName, newName, maxScore);
         if (data.status === 'success') {
             showToast('Section saved', 'success');
             if (currentSection === oldName || currentSection === newName) {
@@ -864,12 +870,8 @@ async function saveSectionRow(oldName) {
 
 async function deleteSectionRow(sectionName) {
     if (!confirm('Delete section "' + sectionName + '" and all its data? This cannot be undone.')) return;
-    const formData = new FormData();
-    formData.append('instructor', currentInstructor);
-    formData.append('section_name', sectionName);
     try {
-        const res = await fetch('php/delete_section.php', { method: 'POST', body: formData });
-        const data = await res.json();
+        const data = await Api.deleteSection(currentInstructor, sectionName);
         if (data.status === 'success') {
             showToast('Section deleted', 'success');
             if (currentSection === sectionName) {
@@ -892,8 +894,7 @@ async function loadAdminGroupResults() {
     const badge = document.getElementById('groupResultsSectionBadge');
     if (badge) badge.textContent = currentSection ? 'SECTION: ' + currentSection : '';
     try {
-        const res = await fetch(`php/get_groups.php?instructor=${encodeURIComponent(currentInstructor)}&section=${encodeURIComponent(currentSection)}`);
-        const data = await res.json();
+        const data = await Api.getGroups(currentInstructor, currentSection);
 
         if (data.status === 'success') {
             renderAdminGroupResults(data.groups);
@@ -969,22 +970,8 @@ const debouncedSaveMembers = debounce(async (groupName) => {
     const m4 = document.getElementById(`member4_${key}`).value.trim();
     const m5 = document.getElementById(`member5_${key}`).value.trim();
 
-    const formData = new FormData();
-    formData.append('instructor', currentInstructor);
-    formData.append('group_name', groupName);
-    formData.append('section', currentSection);
-    formData.append('member1_name', m1);
-    formData.append('member2_name', m2);
-    formData.append('member3_name', m3);
-    formData.append('member4_name', m4);
-    formData.append('member5_name', m5);
-
     try {
-        const res = await fetch('php/save_group_members.php', {
-            method: 'POST',
-            body: formData
-        });
-        const data = await res.json();
+        const data = await Api.saveGroupMembers(currentInstructor, groupName, currentSection, m1, m2, m3, m4, m5);
 
         if (data.status === 'success') {
             showToast('Members saved for ' + groupName, 'success');
@@ -997,17 +984,8 @@ const debouncedSaveMembers = debounce(async (groupName) => {
 }, 600);
 
 async function handleToggleGroupStatus(groupName) {
-    const formData = new FormData();
-    formData.append('instructor', currentInstructor);
-    formData.append('group_name', groupName);
-    formData.append('section', currentSection);
-
     try {
-        const res = await fetch('php/toggle_group_status.php', {
-            method: 'POST',
-            body: formData
-        });
-        const data = await res.json();
+        const data = await Api.toggleGroupStatus(currentInstructor, groupName, currentSection);
 
         if (data.status === 'success') {
             showToast(data.message, 'success');
@@ -1033,8 +1011,7 @@ function closePendingModal(e) {
 
 async function loadPendingAccounts() {
     try {
-        const res = await fetch('php/pending_accounts.php');
-        const data = await res.json();
+        const data = await Api.getPendingAccounts();
         const tbody = document.getElementById('pendingAccountsBody');
         const table = document.getElementById('pendingAccountsTable');
         const noData = document.getElementById('noPendingAccounts');
@@ -1063,12 +1040,7 @@ async function loadPendingAccounts() {
 
 async function approveAccount(id) {
     try {
-        const res = await fetch('php/approve_account.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id })
-        });
-        const data = await res.json();
+        const data = await Api.approveAccount(id);
         if (data.status === 'success') {
             showToast(data.message, 'success');
             loadPendingAccounts();
@@ -1083,12 +1055,7 @@ async function approveAccount(id) {
 async function deletePendingAccount(id) {
     if (!confirm('Delete this pending account?')) return;
     try {
-        const res = await fetch('php/delete_account.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id })
-        });
-        const data = await res.json();
+        const data = await Api.deleteAccount(id);
         if (data.status === 'success') {
             showToast(data.message, 'success');
             loadPendingAccounts();
@@ -1130,15 +1097,7 @@ async function confirmResetRatings() {
     }
 
     try {
-        const res = await fetch('php/reset_ratings.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                instructor_name: typedName,
-                username: sessionStorage.getItem('accountUsername') || ''
-            })
-        });
-        const data = await res.json();
+        const data = await Api.resetRatings(typedName, sessionStorage.getItem('accountUsername') || '');
         if (data.status === 'success') {
             showToast(data.message, 'success');
             closeResetModal();
@@ -1235,12 +1194,7 @@ async function saveEditUsername() {
     if (newUsername === oldUsername) { cancelEditUsername(); return; }
 
     try {
-        const res = await fetch('php/update_account.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'update_username', username: oldUsername, new_username: newUsername })
-        });
-        const data = await res.json();
+        const data = await Api.updateAccount('update_username', oldUsername, newUsername);
         if (data.status === 'success') {
             sessionStorage.setItem('accountUsername', newUsername);
             document.getElementById('accountUsernameView').textContent = newUsername;
@@ -1280,12 +1234,7 @@ async function saveEditPassword() {
     if (!newPass) { showToast('Password cannot be empty', 'error'); return; }
 
     try {
-        const res = await fetch('php/update_account.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'update_password', username: sessionStorage.getItem('accountUsername'), new_password: newPass })
-        });
-        const data = await res.json();
+        const data = await Api.updateAccount('update_password', sessionStorage.getItem('accountUsername'), newPass);
         if (data.status === 'success') {
             sessionStorage.setItem('accountPassword', newPass);
             cancelEditPassword();

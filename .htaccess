@@ -1,3 +1,0 @@
-# Deny direct HTTP access to sensitive directories
-RewriteEngine On
-RewriteRule ^includes/ - [F,L]

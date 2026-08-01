@@ -1,0 +1,467 @@
+const Api = (() => {
+    const COLL_ACCOUNTS = 'accounts';
+    const COLL_SECTIONS = 'section_config';
+    const COLL_GROUPS = 'groups_table';
+    const COLL_RATINGS = 'group_ratings';
+
+    const GROUP_NAMES = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
+    const MEMBER_FIELDS = ['member1_name','member2_name','member3_name','member4_name','member5_name'];
+    const CRITERIA = ['content_accuracy','understanding_topic','organization_structure','delivery_communication','audience_engagement','visual_aids','professional_appearance','teamwork_collaboration','time_allocation','strategies'];
+
+    function enc(v) { return encodeURIComponent(String(v == null ? '' : v)); }
+    function docKey(prefix, ...parts) { return prefix + parts.map(enc).join('_'); }
+    function accountDocId(username) { return docKey('A_', username); }
+    function sectionDocId(instructor, section) { return docKey('S_', instructor, section); }
+    function groupDocId(instructor, section, groupName) { return docKey('G_', instructor, section, groupName); }
+    function ratingDocId(rater, groupName, section) { return docKey('R_', rater, groupName, section); }
+
+    async function queryWhere(collection, conditions) {
+        let ref = db.collection(collection);
+        conditions.forEach(c => { if (c) ref = ref.where(c[0], c[1], c[2]); });
+        const snap = await ref.get();
+        return snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+    }
+
+    async function firstDoc(collection, conditions) {
+        const docs = await queryWhere(collection, conditions);
+        return docs.length ? docs[0] : null;
+    }
+
+    async function hashPassword(pw) {
+        try {
+            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(pw)));
+            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        } catch (e) {
+            let h = 5381;
+            const s = String(pw);
+            for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+            return 'x' + h.toString(16);
+        }
+    }
+
+    async function deleteWhere(collection, conditions) {
+        const docs = await queryWhere(collection, conditions);
+        for (let i = 0; i < docs.length; i += 450) {
+            const batch = db.batch();
+            docs.slice(i, i + 450).forEach(d => batch.delete(db.collection(collection).doc(d.id)));
+            await batch.commit();
+        }
+        return docs.length;
+    }
+
+    async function updateWhere(collection, conditions, updates) {
+        const docs = await queryWhere(collection, conditions);
+        for (const d of docs) {
+            await db.collection(collection).doc(d.id).update(updates);
+        }
+        return docs.length;
+    }
+
+    async function findGroupByMember(name, section) {
+        const nm = String(name || '').trim().toUpperCase();
+        const conds = section ? [['section', '==', section]] : [];
+        const groups = await queryWhere(COLL_GROUPS, conds);
+        return groups.find(g => MEMBER_FIELDS.some(f => String(g[f] || '').trim().toUpperCase() === nm)) || null;
+    }
+
+    async function renameRaterRatings(oldName, newName, instructor) {
+        const docs = await queryWhere(COLL_RATINGS, [['rater_name', '==', oldName], ['instructor', '==', instructor]]);
+        for (const d of docs) {
+            const newData = Object.assign({}, d);
+            delete newData.id;
+            newData.rater_name = newName;
+            await db.collection(COLL_RATINGS).doc(ratingDocId(newName, d.group_name, d.section || '')).set(newData);
+            await db.collection(COLL_RATINGS).doc(d.id).delete();
+        }
+    }
+
+    function emptyGroupData(instructor, section, groupName) {
+        return {
+            group_name: groupName,
+            instructor: instructor,
+            section: section || '',
+            member1_name: '',
+            member2_name: '',
+            member3_name: '',
+            member4_name: '',
+            member5_name: '',
+            is_closed: 0
+        };
+    }
+
+    return {
+        // ===== ACCOUNTS =====
+        async login(username, password) {
+            const acct = await firstDoc(COLL_ACCOUNTS, [['username', '==', username]]);
+            if (!acct) return { status: 'error', message: 'Invalid username or password!' };
+            if (acct.status === 'pending') {
+                return { status: 'error', message: 'Your account is pending approval. Please wait for an admin to approve your account.' };
+            }
+            const hash = await hashPassword(password);
+            if (hash !== acct.password) return { status: 'error', message: 'Invalid username or password!' };
+            return {
+                status: 'success',
+                message: 'Login successful!',
+                name: acct.instructor_name,
+                user: { id: acct.id, instructor_name: acct.instructor_name, username: acct.username }
+            };
+        },
+
+        async signup(name, username, password) {
+            const exists = await firstDoc(COLL_ACCOUNTS, [['username', '==', username]]);
+            if (exists) return { status: 'error', message: 'Username already exists!' };
+            const hash = await hashPassword(password);
+            await db.collection(COLL_ACCOUNTS).add({
+                instructor_name: String(name || '').trim().toUpperCase(),
+                username: username,
+                password: hash,
+                status: 'pending'
+            });
+            return { status: 'success', message: 'Account created! Waiting for admin approval. You cannot login until approved.' };
+        },
+
+        async studentLogin(name, section) {
+            const nm = String(name || '').trim().toUpperCase();
+            if (!nm) return { status: 'error', message: 'Please enter your name' };
+            if (!section) return { status: 'error', message: 'Please select your section' };
+            const grp = await findGroupByMember(nm, section);
+            if (!grp) return { status: 'error', message: 'Name not found in the selected section. Please ask your instructor to register you first.' };
+            return {
+                status: 'success',
+                message: 'Welcome, ' + nm + '!',
+                name: nm,
+                instructor: grp.instructor,
+                group: grp.group_name,
+                section: grp.section || section,
+                student: { id: grp.id, name: nm, group: grp.group_name, instructor: grp.instructor, section: grp.section || section }
+            };
+        },
+
+        async getPendingAccounts() {
+            const docs = await queryWhere(COLL_ACCOUNTS, [['status', '==', 'pending']]);
+            docs.sort((a, b) => (a.id < b.id ? -1 : 1));
+            return { status: 'success', accounts: docs.map(d => ({ id: d.id, instructor_name: d.instructor_name, username: d.username })) };
+        },
+
+        async approveAccount(id) {
+            const doc = await db.collection(COLL_ACCOUNTS).doc(id).get();
+            if (!doc.exists) return { status: 'error', message: 'Account not found or already approved' };
+            await doc.ref.update({ status: 'approved' });
+            return { status: 'success', message: 'Account approved successfully!' };
+        },
+
+        async deleteAccount(id) {
+            const doc = await db.collection(COLL_ACCOUNTS).doc(id).get();
+            if (!doc.exists || doc.data().status !== 'pending') return { status: 'error', message: 'Account not found or already approved' };
+            const instructorName = doc.data().instructor_name;
+            await deleteWhere(COLL_GROUPS, [['instructor', '==', instructorName]]);
+            await deleteWhere(COLL_RATINGS, [['instructor', '==', instructorName]]);
+            await doc.ref.delete();
+            return { status: 'success', message: 'Account and all related data deleted successfully!' };
+        },
+
+        async updateAccount(action, username, value) {
+            const acct = await firstDoc(COLL_ACCOUNTS, [['username', '==', username]]);
+            if (!acct) return { status: 'error', message: 'Account not found' };
+            if (action === 'update_username') {
+                const newUsername = String(value || '').trim();
+                if (!newUsername) return { status: 'error', message: 'Username cannot be empty' };
+                const dup = await firstDoc(COLL_ACCOUNTS, [['username', '==', newUsername]]);
+                if (dup) return { status: 'error', message: 'Username already taken' };
+                await db.collection(COLL_ACCOUNTS).doc(acct.id).update({ username: newUsername });
+                return { status: 'success', message: 'Username updated' };
+            }
+            if (action === 'update_password') {
+                const hash = await hashPassword(value || '');
+                await db.collection(COLL_ACCOUNTS).doc(acct.id).update({ password: hash });
+                return { status: 'success', message: 'Password updated' };
+            }
+            return { status: 'error', message: 'Invalid action' };
+        },
+
+        async resetRatings(instructor_name, username) {
+            const typed = String(instructor_name || '').trim().toUpperCase();
+            if (!typed || !username) return { status: 'error', message: 'Instructor name and username required' };
+            const acct = await firstDoc(COLL_ACCOUNTS, [['username', '==', username]]);
+            if (!acct) return { status: 'error', message: 'Account not found' };
+            if (String(acct.instructor_name || '').trim().toUpperCase() !== typed) {
+                return { status: 'error', message: 'Name does not match your account. Reset cancelled.' };
+            }
+            const deleted = await deleteWhere(COLL_RATINGS, [['instructor', '==', acct.instructor_name]]);
+            return { status: 'success', message: 'All your ratings cleared. ' + deleted + ' row(s) deleted.' };
+        },
+
+        // ===== SECTIONS =====
+        async getSections(instructor) {
+            if (!instructor) return { status: 'error', message: 'instructor required' };
+            const docs = await queryWhere(COLL_SECTIONS, [['instructor', '==', instructor]]);
+            docs.sort((a, b) => String(a.section_name).localeCompare(String(b.section_name)));
+            return { status: 'success', sections: docs.map(d => ({ section_name: d.section_name, max_score: d.max_score || 1000 })) };
+        },
+
+        async getSectionConfig(instructor, section_name) {
+            if (!instructor || !section_name) return { status: 'error', message: 'instructor and section_name required' };
+            const doc = await firstDoc(COLL_SECTIONS, [['instructor', '==', instructor], ['section_name', '==', section_name]]);
+            return { status: 'success', max_score: doc ? (doc.max_score || 1000) : 1000 };
+        },
+
+        async getAllSections() {
+            const docs = await queryWhere(COLL_SECTIONS, []);
+            const seen = {};
+            docs.forEach(d => { if (d.section_name && !seen[d.section_name]) seen[d.section_name] = true; });
+            return { status: 'success', sections: Object.keys(seen).sort() };
+        },
+
+        async saveSectionConfig(instructor, section_name, new_section_name, max_score) {
+            if (!instructor) return { status: 'error', message: 'instructor required' };
+            const name = new_section_name || section_name;
+            const maxSc = max_score || 1000;
+            const existing = await firstDoc(COLL_SECTIONS, [['instructor', '==', instructor], ['section_name', '==', section_name]]);
+            if (existing) {
+                if (new_section_name && new_section_name !== section_name) {
+                    const dup = await firstDoc(COLL_SECTIONS, [['instructor', '==', instructor], ['section_name', '==', new_section_name]]);
+                    if (dup) return { status: 'error', message: 'Section name already exists' };
+                    await updateWhere(COLL_GROUPS, [['instructor', '==', instructor], ['section', '==', section_name]], { section: new_section_name });
+                    await updateWhere(COLL_RATINGS, [['instructor', '==', instructor], ['section', '==', section_name]], { section: new_section_name });
+                    await db.collection(COLL_SECTIONS).doc(existing.id).update({ section_name: new_section_name, max_score: maxSc });
+                } else {
+                    await db.collection(COLL_SECTIONS).doc(existing.id).update({ max_score: maxSc });
+                }
+            } else {
+                await db.collection(COLL_SECTIONS).doc(sectionDocId(instructor, name)).set({
+                    instructor: instructor,
+                    section_name: name,
+                    max_score: maxSc
+                });
+            }
+            return { status: 'success', message: 'Section config saved' };
+        },
+
+        async deleteSection(instructor, section_name) {
+            if (!instructor || !section_name) return { status: 'error', message: 'instructor and section_name required' };
+            await deleteWhere(COLL_RATINGS, [['instructor', '==', instructor], ['section', '==', section_name]]);
+            await deleteWhere(COLL_GROUPS, [['instructor', '==', instructor], ['section', '==', section_name]]);
+            await deleteWhere(COLL_SECTIONS, [['instructor', '==', instructor], ['section_name', '==', section_name]]);
+            return { status: 'success', message: 'Section and all its data deleted' };
+        },
+
+        // ===== GROUPS =====
+        async getGroups(instructor, section) {
+            if (!instructor) return { status: 'error', message: 'instructor parameter required' };
+            const conds = [['instructor', '==', instructor]];
+            if (section) conds.push(['section', '==', section]);
+            let groups = await queryWhere(COLL_GROUPS, conds);
+            if (groups.length === 0) {
+                const batch = db.batch();
+                GROUP_NAMES.forEach(gn => {
+                    batch.set(db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, gn)), emptyGroupData(instructor, section, gn));
+                });
+                await batch.commit();
+                groups = await queryWhere(COLL_GROUPS, conds);
+            }
+            const ratingConds = [['instructor', '==', instructor]];
+            if (section) ratingConds.push(['section', '==', section]);
+            const ratings = await queryWhere(COLL_RATINGS, ratingConds);
+            const sums = {};
+            ratings.forEach(r => {
+                sums[r.group_name] = sums[r.group_name] || { total: 0, count: 0 };
+                sums[r.group_name].total += (r.total_score || 0);
+                sums[r.group_name].count += 1;
+            });
+            const response = {};
+            GROUP_NAMES.forEach(gn => {
+                const g = groups.find(x => x.group_name === gn) || {};
+                const sum = sums[gn] || { total: 0, count: 0 };
+                response[gn] = {
+                    group_name: gn,
+                    member1_name: g.member1_name || '',
+                    member2_name: g.member2_name || '',
+                    member3_name: g.member3_name || '',
+                    member4_name: g.member4_name || '',
+                    member5_name: g.member5_name || '',
+                    is_closed: g.is_closed ? 1 : 0,
+                    total_score: sum.total,
+                    num_ratings: sum.count
+                };
+            });
+            return { status: 'success', groups: response };
+        },
+
+        async getGroupStatus(instructor, section) {
+            if (!instructor) return { status: 'error', message: 'instructor parameter required' };
+            const conds = [['instructor', '==', instructor]];
+            if (section) conds.push(['section', '==', section]);
+            const docs = await queryWhere(COLL_GROUPS, conds);
+            const status = {};
+            GROUP_NAMES.forEach(gn => { status[gn] = 0; });
+            docs.forEach(d => { status[d.group_name] = d.is_closed ? 1 : 0; });
+            return { status: 'success', groups: status };
+        },
+
+        async saveGroupMembers(instructor, group_name, section, m1, m2, m3, m4, m5) {
+            if (!instructor || !group_name) return { status: 'error', message: 'instructor and group_name required' };
+            const members = [m1, m2, m3, m4, m5].map(m => String(m || '').trim().toUpperCase());
+            const ref = db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, group_name));
+            const doc = await ref.get();
+            if (doc.exists) {
+                const oldNames = MEMBER_FIELDS.map(f => String(doc.data()[f] || '').trim().toUpperCase());
+                const upd = {
+                    member1_name: members[0],
+                    member2_name: members[1],
+                    member3_name: members[2],
+                    member4_name: members[3],
+                    member5_name: members[4]
+                };
+                await ref.update(upd);
+                for (let i = 0; i < 5; i++) {
+                    const o = oldNames[i], n = members[i];
+                    if (o && n && o !== n) {
+                        await renameRaterRatings(o, n, instructor);
+                    }
+                }
+            } else {
+                const data = emptyGroupData(instructor, section, group_name);
+                data.member1_name = members[0];
+                data.member2_name = members[1];
+                data.member3_name = members[2];
+                data.member4_name = members[3];
+                data.member5_name = members[4];
+                await ref.set(data);
+            }
+            return { status: 'success', message: 'Members saved successfully' };
+        },
+
+        async toggleGroupStatus(instructor, group_name, section) {
+            if (!instructor || !group_name) return { status: 'error', message: 'instructor and group_name required' };
+            const ref = db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, group_name));
+            const doc = await ref.get();
+            if (doc.exists) {
+                const newStatus = doc.data().is_closed ? 0 : 1;
+                await ref.update({ is_closed: newStatus });
+                return { status: 'success', is_closed: newStatus, message: newStatus ? 'Group closed' : 'Group opened' };
+            }
+            const data = emptyGroupData(instructor, section, group_name);
+            data.is_closed = 1;
+            await ref.set(data);
+            return { status: 'success', is_closed: 1, message: 'Group closed' };
+        },
+
+        // ===== RATINGS =====
+        async getMyRatings(rater_name, section) {
+            if (!rater_name) return { status: 'error', message: 'rater_name parameter required' };
+            const conds = [['rater_name', '==', rater_name]];
+            if (section) conds.push(['section', '==', section]);
+            const docs = await queryWhere(COLL_RATINGS, conds);
+            const ratings = {};
+            docs.forEach(d => { ratings[d.group_name] = d; });
+            return { status: 'success', ratings: ratings };
+        },
+
+        async saveGroupRating(payload) {
+            const group_name = payload.group_name || '';
+            const rater_name = payload.rater_name || '';
+            let section = payload.section || '';
+            let instructor = payload.instructor || '';
+            if (!instructor) {
+                const grp = await findGroupByMember(rater_name, section);
+                if (grp) {
+                    instructor = grp.instructor;
+                    if (!section) section = grp.section || '';
+                }
+            }
+            const s = payload.scores || {};
+            const data = {
+                rater_name: rater_name,
+                group_name: group_name,
+                section: section,
+                instructor: instructor,
+                total_score: payload.total_score || 0,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            CRITERIA.forEach(c => { data[c] = s[c] || 0; });
+            await db.collection(COLL_RATINGS).doc(ratingDocId(rater_name, group_name, section)).set(data);
+            return { status: 'success', message: 'Rating saved successfully!', total_score: data.total_score };
+        },
+
+        async getStudentRatingsTable(instructor, section) {
+            if (!instructor) return { status: 'error', message: 'instructor parameter required' };
+            const groupConds = [['instructor', '==', instructor]];
+            if (section) groupConds.push(['section', '==', section]);
+            const groups = await queryWhere(COLL_GROUPS, groupConds);
+            const allRaters = {};
+            groups.forEach(g => MEMBER_FIELDS.forEach(f => {
+                const n = String(g[f] || '').trim().toUpperCase();
+                if (n) allRaters[n] = true;
+            }));
+            const ratingConds = [['instructor', '==', instructor]];
+            if (section) ratingConds.push(['section', '==', section]);
+            const ratings = await queryWhere(COLL_RATINGS, ratingConds);
+            const ratersWithRatings = {};
+            ratings.forEach(r => {
+                const rn = String(r.rater_name || '').trim().toUpperCase();
+                if (!rn) return;
+                ratersWithRatings[rn] = ratersWithRatings[rn] || {};
+                ratersWithRatings[rn][r.group_name] = r.total_score || 0;
+            });
+            const allNames = Object.keys(allRaters);
+            Object.keys(ratersWithRatings).forEach(n => {
+                if (!allRaters[n]) allNames.push(n);
+            });
+            allNames.sort();
+            const response = allNames.map(name => {
+                const entry = { name: name };
+                GROUP_NAMES.forEach(gn => {
+                    entry[gn] = (ratersWithRatings[name] && ratersWithRatings[name][gn] !== undefined) ? ratersWithRatings[name][gn] : null;
+                });
+                return entry;
+            });
+            return { status: 'success', ratings: response };
+        },
+
+        async getRaterList(instructor, section) {
+            if (!instructor) return { status: 'error', message: 'instructor parameter required' };
+            const groupConds = [['instructor', '==', instructor]];
+            if (section) groupConds.push(['section', '==', section]);
+            const groups = await queryWhere(COLL_GROUPS, groupConds);
+            const students = {};
+            groups.forEach(g => MEMBER_FIELDS.forEach(f => {
+                const n = String(g[f] || '').trim().toUpperCase();
+                if (n) students[n] = true;
+            }));
+            const ratingConds = [['instructor', '==', instructor]];
+            if (section) ratingConds.push(['section', '==', section]);
+            const ratings = await queryWhere(COLL_RATINGS, ratingConds);
+            const voted = {};
+            ratings.forEach(r => {
+                const rn = String(r.rater_name || '').trim().toUpperCase();
+                if (!rn) return;
+                voted[rn] = voted[rn] || {};
+                voted[rn][r.group_name] = true;
+            });
+            const studentList = Object.keys(students).sort();
+            const result = studentList.map(sname => {
+                const entry = { name: sname };
+                for (let i = 1; i <= 10; i++) {
+                    const gn = 'GROUP ' + i;
+                    entry[gn] = (voted[sname] && voted[sname][gn]) ? 1 : 0;
+                }
+                return entry;
+            });
+            return { status: 'success', raters: result };
+        },
+
+        async getStudentDetail(rater_name, instructor, section) {
+            if (!rater_name || !instructor) return { status: 'error', message: 'rater_name and instructor required' };
+            const conds = [['rater_name', '==', rater_name], ['instructor', '==', instructor]];
+            if (section) conds.push(['section', '==', section]);
+            const docs = await queryWhere(COLL_RATINGS, conds);
+            docs.sort((a, b) => String(a.group_name).localeCompare(String(b.group_name)));
+            const ratings = docs.map(d => {
+                const entry = { group_name: d.group_name, total_score: d.total_score || 0 };
+                CRITERIA.forEach(c => { entry[c] = d[c] || 0; });
+                return entry;
+            });
+            return { status: 'success', rater_name: rater_name, ratings: ratings };
+        }
+    };
+})();
