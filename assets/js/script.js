@@ -52,15 +52,6 @@ async function onSectionSelect() {
     reloadCurrentView();
 }
 
-const debouncedAddSection = debounce(() => {
-    addNewSection();
-}, 800);
-
-const debouncedSaveSectionRow = (oldName) => {
-    const _debounceMap = window._sectionSaveDebounce || (window._sectionSaveDebounce = debounceByKey(600));
-    _debounceMap(oldName, () => saveSectionRow(oldName));
-};
-
 async function addNewSection() {
     const name = document.getElementById('newSectionInput').value.trim().toUpperCase();
     if (!name) { showToast('Enter a section name', 'error'); return; }
@@ -890,9 +881,10 @@ async function loadSectionsManagement() {
             tbody.innerHTML = data.sections.map(s => {
                 const sid = s.section_name.replace(/[^a-zA-Z0-9_-]/g, '_');
                 return `<tr>
-                    <td><input type="text" id="sec_name_${sid}" value="${s.section_name}" class="section-edit-input" oninput="debouncedSaveSectionRow('${s.section_name}')"></td>
-                    <td><input type="number" id="sec_max_${sid}" value="${s.max_score || 1000}" class="section-edit-input" style="width:100px;" oninput="debouncedSaveSectionRow('${s.section_name}')"></td>
+                    <td><input type="text" id="sec_name_${sid}" value="${s.section_name}" class="section-edit-input"></td>
+                    <td><input type="number" id="sec_max_${sid}" value="${s.max_score || 1000}" class="section-edit-input" style="width:100px;"></td>
                     <td>
+                        <button class="btn btn-success" style="padding:4px 10px;font-size:11px;" onclick="saveSectionRow('${s.section_name}')"><i class="fas fa-save"></i></button>
                         <button class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteSectionRow('${s.section_name}')"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
@@ -1012,14 +1004,6 @@ function debounce(fn, delay) {
     return function (...args) {
         clearTimeout(timer);
         timer = setTimeout(() => fn.apply(this, args), delay);
-    };
-}
-
-function debounceByKey(delay) {
-    const timers = {};
-    return function (key, fn) {
-        clearTimeout(timers[key]);
-        timers[key] = setTimeout(() => { delete timers[key]; fn(); }, delay);
     };
 }
 
