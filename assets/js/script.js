@@ -101,13 +101,18 @@ async function restoreSectionState() {
     const saved = sessionStorage.getItem('currentSection_' + currentInstructor);
     currentSection = saved || '';
     await loadSectionDropdown();
-    if (currentSection) {
-        const sel = document.getElementById('sectionSelect');
-        if (sel && [...sel.options].some(o => o.value === currentSection)) {
-            sel.value = currentSection;
-        }
+    const sel = document.getElementById('sectionSelect');
+    const optionValues = sel ? [...sel.options].map(o => o.value) : [];
+    let section = (saved && optionValues.includes(saved)) ? saved : '';
+    if (!section && sel && sel.options.length > 1) {
+        section = sel.options[1].value;
+    }
+    currentSection = section;
+    if (sel) sel.value = section;
+    if (section) sessionStorage.setItem('currentSection_' + currentInstructor, section);
+    if (section) {
         try {
-            const data = await Api.getSectionConfig(currentInstructor, currentSection);
+            const data = await Api.getSectionConfig(currentInstructor, section);
             if (data.status === 'success') {
                 currentMaxScore = data.max_score || 1000;
             }
@@ -303,7 +308,7 @@ function showStudentDashboard() {
     initStudentDashboard();
 }
 
-function showInstructorDashboard() {
+async function showInstructorDashboard() {
     document.getElementById('authContainer').style.display = 'none';
     document.getElementById('studentDashboard').style.display = 'none';
     document.getElementById('dashboard').style.display = 'flex';
@@ -311,8 +316,8 @@ function showInstructorDashboard() {
     document.getElementById('accountName').textContent = currentUserName;
     document.getElementById('accountUsernameView').textContent = sessionStorage.getItem('accountUsername') || '';
     document.getElementById('dropdownUserName').textContent = currentUserName;
-    restoreSectionState();
-    showSection('account', document.querySelector('.nav-link[data-section="account"]'), { preventDefault: () => {}, stopPropagation: () => {} });
+    await restoreSectionState();
+    showSection('studentList', document.querySelector('.nav-link[data-section="studentList"]'), { preventDefault: () => {}, stopPropagation: () => {} });
 }
 
 // ========== SIDEBAR TOGGLE ==========
