@@ -1967,12 +1967,13 @@ body {
   .toolbar-left { flex-direction: column; }
   .search-input, .filter-select { width: 100%; }
 
-  #studentRatingsTable, #raterListTable { min-width: auto; font-size: 12px; }
+  #studentRatingsTable { min-width: 820px; font-size: 12px; }
+  #raterListTable { min-width: 640px; font-size: 12px; }
   #studentRatingsTable th,
   #studentRatingsTable td,
   #raterListTable th,
   #raterListTable td { padding: 8px 6px; font-size: 11px; }
-  #studentRatingsTable th:nth-child(2) { min-width: 120px; }
+  #studentRatingsTable th:nth-child(2) { min-width: 160px; }
   #raterListTable td:not(:first-child) { font-size: 14px; }
 
   .detail-modal { width: 95vw; }
@@ -1995,7 +1996,12 @@ body {
 
   .dropdown-menu { right: -10px; min-width: 200px; }
 
-  .toast { right: 10px; left: 10px; bottom: 10px; text-align: center; max-width: none; }
+  .toast { right: 10px; left: 10px; bottom: 10px; text-align: center; max-width: none; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  /* Safe-area insets for dev FAB at mobile */
+  .dev-fab {
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    right: calc(24px + env(safe-area-inset-right));
+  }
 
   .admin-card-header { flex-wrap: wrap; gap: 6px; }
   .admin-card-title h4 { font-size: 15px; }
@@ -2072,6 +2078,8 @@ body {
   .radio-desc { font-size: 11px; flex: 1; min-width: 0; }
   .total-score { font-size: 22px; }
   .btn-back { padding: 8px 14px; font-size: 12px; }
+  /* RUBRIC MOBILE BUG FIX: override rubrics-container at ≤768px */
+  .rubrics-container { min-width: 0; width: 100%; }
 }
 
 @media (max-width: 480px) {
@@ -2117,22 +2125,23 @@ body {
   .card-toolbar { padding: 12px 14px; }
   .search-input { padding: 8px 12px; font-size: 12px; }
   .filter-select { padding: 8px 12px; font-size: 12px; }
-  #studentRatingsTable, #raterListTable { font-size: 10px; }
+  #studentRatingsTable { min-width: 820px; font-size: 10px; }
+  #raterListTable { min-width: 640px; font-size: 10px; }
   #studentRatingsTable th,
   #studentRatingsTable td,
   #raterListTable th,
-  #raterListTable td { padding: 5px 3px; font-size: 9px; }
-  #studentRatingsTable th { font-size: 8px; }
-  #studentRatingsTable th:first-child { width: 24px; }
-  #studentRatingsTable th:nth-child(2) { width: 100px; }
-  #studentRatingsTable th:nth-child(n+3) { width: 50px; max-width: 50px; }
-  #studentRatingsTable td { padding: 8px 4px; }
-  #studentRatingsTable td:nth-child(2) { width: 100px; max-width: 100px; }
-  #studentRatingsTable .score-badge { padding: 2px 4px; font-size: 9px; }
-  #raterListTable th:first-child { width: 28px; }
-  #raterListTable td:nth-child(n+3) { font-size: 12px; }
+  #raterListTable td { padding: 8px 6px; font-size: 10px; }
+  #studentRatingsTable th { font-size: 10px; }
+  #studentRatingsTable th:first-child { width: 30px; }
+  #studentRatingsTable th:nth-child(2) { min-width: 160px; width: 160px; }
+  #studentRatingsTable th:nth-child(n+3) { width: 70px; max-width: 70px; }
+  #studentRatingsTable td { padding: 10px 6px; }
+  #studentRatingsTable td:nth-child(2) { width: 160px; max-width: 160px; }
+  #studentRatingsTable .score-badge { padding: 4px 6px; font-size: 11px; }
+  #raterListTable th:first-child { width: 40px; }
+  #raterListTable td:nth-child(n+3) { font-size: 14px; }
   #raterListTable .rater-voted i,
-  #raterListTable .rater-missed i { font-size: 12px; }
+  #raterListTable .rater-missed i { font-size: 14px; }
 
   .account-table td { padding: 8px 10px; font-size: 12px; }
   .account-table td:first-child { font-size: 11px; }
@@ -2184,7 +2193,7 @@ body {
   .detail-criteria-name { font-size: 11px; min-width: 100%; }
   .detail-dot { width: 22px; height: 22px; font-size: 9px; }
 
-  .toast { padding: 12px 16px; font-size: 12px; }
+  .toast { padding: 12px 16px; font-size: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
 
   .rubrics-table tr td:first-child.criteria-name { font-size: 11px; padding: 8px 10px; }
   .rubrics-table td { padding: 4px 8px; font-size: 11px; }
@@ -2201,6 +2210,69 @@ body {
   .total-score { font-size: 18px; }
   .student-rating-actions { flex-direction: row; }
   .student-rating-actions .btn { flex: 1; font-size: 12px; padding: 10px 14px; white-space: nowrap; }
+
+  /* Sections table input widths - inline style="width:100px" is in HTML */
+  #sectionsTable input[type="number"] {
+    width: 100% !important;
+    max-width: 100px;
+    min-width: 70px;
+    font-size: 12px;
+  }
+  /* Ensure section name input also takes full width */
+  .section-edit-input {
+    width: 100%;
+    font-size: 12px;
+  }
+  /* Touch targets: raise minimum sizes for buttons and interactive elements at ≤480 */
+  .btn, .btn-edit-inline, .btn-toggle-password, .modal-close, .btn-rate-card, .btn-toggle-group, .btn-back, .btn-logout-student {
+    min-height: 40px;
+    padding: 10px 16px;
+  }
+  .btn {
+    font-size: 12px;
+  }
+  .modal-close {
+    padding: 10px 12px;
+  }
+  .btn-edit-inline {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  .btn-toggle-password {
+    padding: 8px 12px;
+  }
+  .btn-rate-card {
+    padding: 10px 18px;
+  }
+  .btn-toggle-group {
+    padding: 8px 14px;
+    font-size: 11px;
+  }
+  .btn-back {
+    padding: 10px 18px;
+  }
+  .btn-logout-student {
+    padding: 10px 18px;
+  }
+  /* Radio rows: ensure min-height 44px for touch targets */
+  .radio-label-cell {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+  /* Buttons in auth card at ≤480 - ensure fab visible */
+  .auth-card .btn {
+    padding: 14px;
+    font-size: 13px;
+  }
+  /* Modal safe-area bottom padding on iOS */
+  .modal-actions, .modal-body {
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+  /* Auth card max-height for short viewports at ≤480 */
+  .auth-card {
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
 }
 
 @media (max-width: 375px) {
@@ -2232,6 +2304,26 @@ body {
   #raterListTable .rater-missed i { font-size: 10px; }
   .score-badge { font-size: 10px; padding: 2px 6px; }
   .btn-edit, .btn-delete { font-size: 10px; padding: 4px 6px; }
+
+  /* Touch targets: same or slightly raised at 375px */
+  .btn, .btn-edit-inline, .btn-toggle-password, .modal-close, .btn-rate-card, .btn-toggle-group, .btn-back, .btn-logout-student {
+    min-height: 44px;
+    padding: 10px 14px;
+  }
+  .modal-close {
+    padding: 10px 12px;
+  }
+  .btn-edit-inline {
+    padding: 8px 12px;
+  }
+  .btn-toggle-group {
+    padding: 6px 12px;
+    font-size: 10px;
+  }
+  .radio-label-cell {
+    min-height: 44px;
+  }
+
   .action-buttons .btn { font-size: 10px; padding: 4px 6px; }
 
   .main-header h1 { font-size: 14px; }
