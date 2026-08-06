@@ -315,12 +315,15 @@ async function showInstructorDashboard() {
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
-    const isMobile = window.innerWidth <= 768;
+    const isMobile = window.matchMedia('(max-width: 768px)').matches || window.innerWidth <= 768;
     if (isMobile) {
+        const opening = !sidebar.classList.contains('open');
         sidebar.classList.toggle('open');
         overlay.classList.toggle('show');
+        sidebar.style.transform = opening ? 'translateX(0)' : 'translateX(-100%)';
     } else {
         sidebar.classList.toggle('collapsed');
+        sidebar.style.transform = '';
     }
 }
 
@@ -355,8 +358,9 @@ function showSection(section, el, e) {
     if (section === 'groupResults') loadAdminGroupResults();
     if (section === 'sections') loadSectionsManagement();
  
-    if (window.innerWidth <= 768) {
+    if (window.matchMedia('(max-width: 768px)').matches || window.innerWidth <= 768) {
         document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebar').style.transform = '';
         document.getElementById('sidebarOverlay').classList.remove('show');
     }
 }
