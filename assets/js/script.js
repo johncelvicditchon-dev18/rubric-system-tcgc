@@ -716,6 +716,115 @@ async function exportStudentPDF() {
     }
 }
 
+async function exportRaterListPDF() {
+    if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
+    const data = await Api.getRaterList(currentInstructor, currentSection);
+    if (data.status !== 'success') { showToast('Error loading rater list', 'error'); return; }
+    const raters = data.raters || [];
+
+    const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Rater List</title>
+    <style>
+        @page { size: legal landscape; margin: 12mm 14mm 14mm 14mm; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Arial, Helvetica, sans-serif; color: #14202e; margin: 0; font-size: 10px; }
+        .letterhead { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px double #0e5e2e; padding-bottom: 10px; margin-bottom: 6px; }
+        .letterhead .logo { height: 58px; }
+        .letterhead .brand { text-align: center; }
+        .letterhead .brand h1 { margin: 0; font-size: 21px; letter-spacing: 2px; color: #0e5e2e; font-weight: 800; }
+        .letterhead .brand h2 { margin: 2px 0 0; font-size: 11px; font-weight: 600; color: #334155; letter-spacing: 1px; text-transform: uppercase; }
+        .letterhead .brand p { margin: 4px 0 0; font-size: 9px; color: #64748b; }
+        .letterhead .date { text-align: right; font-size: 9.5px; color: #334155; line-height: 1.6; }
+        .letterhead .date b { display: block; font-size: 10px; color: #14202e; }
+        .meta { display: flex; justify-content: space-between; gap: 10px; background: #f0f7f2; border: 1px solid #cfe3d6; border-radius: 6px; padding: 6px 12px; margin-bottom: 10px; font-size: 10.5px; color: #1c2b3a; }
+        .meta span { white-space: nowrap; }
+        .meta b { color: #0e5e2e; }
+        table { border-collapse: collapse; width: 100%; }
+        thead { display: table-row-group; }
+        tr { page-break-inside: avoid; }
+        th, td { border: 1px solid #b9c6bd; padding: 5px 6px; font-size: 9.5px; text-align: center; }
+        thead th { background: #0e5e2e; color: #ffffff; font-size: 9.5px; letter-spacing: 0.5px; padding: 7px 4px; }
+        thead th:first-child { border-top-left-radius: 0; }
+        tbody td { font-variant-numeric: tabular-nums; }
+        td.name { text-align: left; font-weight: 600; color: #1c2b3a; white-space: nowrap; }
+        tr.alt td { background: #f3f7f4; }
+        tbody tr:hover td { background: #e6f2ea; }
+        tr.total td { background: #0e5e2e; color: #ffffff; font-weight: bold; font-size: 10px; padding: 7px 6px; }
+        tr.total td.name { text-align: left; }
+        .signatures { display: flex; justify-content: space-between; margin-top: 34px; padding: 0 10px; }
+        .sig-block { text-align: center; }
+        .sig-line { display: inline-block; min-width: 220px; border-top: 1.5px solid #14202e; padding-top: 5px; font-weight: 700; font-size: 11px; letter-spacing: 0.5px; }
+        .sig-label { font-size: 9.5px; color: #475569; margin-top: 3px; letter-spacing: 1px; }
+        .doc-footer { text-align: center; font-size: 8.5px; color: #64748b; margin-top: 14px; }
+        .table-note { font-size: 9px; color: #475569; font-style: italic; margin: 6px 2px 0; }
+    </style></head><body>`;
+    html += `<div class="letterhead">
+        <img class="logo" src="assets/images/logo-toggle.png" alt="Logo">
+        <div class="brand">
+            <h1>RATER LIST</h1>
+        </div>
+        <div class="date">Date of Issuance<br><b>${escHtml(today)}</b></div>
+    </div>`;
+    html += `<div class="meta">
+        <span><b>INSTRUCTOR:</b> ${escHtml(currentInstructor)}</span>
+        <span><b>SECTION:</b> ${escHtml(currentSection || 'N/A')}</span>
+        <span><b>MEMBERS:</b> ${raters.length}</span>
+    </div>`;
+    html += '<table><thead><tr><th style="width:26px;">#</th><th style="text-align:left;">NAME OF THE RATER</th>';
+    for (let i = 1; i <= 10; i++) html += `<th>GROUP ${i}</th>`;
+    html += '</tr></thead><tbody>';
+
+    raters.forEach((r, idx) => {
+        html += `<tr class="${(idx % 2) ? 'alt' : ''}"><td>${idx + 1}</td><td class="name">${escHtml(r.name)}</td>`;
+        for (let g = 1; g <= 10; g++) {
+            const voted = r['GROUP ' + g];
+            if (voted) {
+                html += '<td>&#10003;</td>';
+            } else {
+                html += '<td>&#10007;</td>';
+            }
+        }
+        html += '</tr>';
+    });
+    html += '</tbody></table>';
+    html += `<div class="table-note">VOTED: &#10003;  MISSED: &#10007;</div>`;
+    html += `<div class="signatures">
+        <div class="sig-block"><span class="sig-line">${escHtml(currentInstructor)}</span><div class="sig-label">PREPARED BY</div></div>
+        <div class="sig-block"><span class="sig-line">&nbsp;</span><div class="sig-label">NOTED BY</div></div>
+    </div>`;
+    html += '<div class="doc-footer">This document was generated automatically by the Rubric System on ' + escHtml(today) + '.</div>';
+    html += '</body></html>';
+
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+    document.body.appendChild(frame);
+    const fdoc = frame.contentWindow.document;
+    fdoc.open();
+    fdoc.write(html);
+    fdoc.close();
+    const doPrint = () => {
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+        setTimeout(() => { if (frame.parentNode) frame.parentNode.removeChild(frame); }, 1500);
+    };
+    const imgs = fdoc.images;
+    if (imgs.length) {
+        let pending = imgs.length;
+        for (let i = 0; i < imgs.length; i++) {
+            const img = imgs[i];
+            if (img.complete) { pending--; }
+            else {
+                img.addEventListener('load', () => { pending--; if (pending === 0) doPrint(); });
+                img.addEventListener('error', () => { pending--; if (pending === 0) doPrint(); });
+            }
+        }
+        if (pending === 0) doPrint();
+    } else {
+        setTimeout(doPrint, 250);
+    }
+}
+
 // ========== STUDENT DETAIL MODAL ==========
 const CRITERIA_LABELS = {
     content_accuracy: 'Content Accuracy',
