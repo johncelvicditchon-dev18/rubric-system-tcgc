@@ -1165,7 +1165,9 @@ async function addNewCriterion() {
     if (!name) { showToast('Enter a criterion name', 'error'); return; }
     if (liveCriteria.length >= 20) { showToast('Maximum of 20 criteria reached.', 'error'); return; }
 
-    const id = 'criteria_' + slugifyCriterion(name);
+    const slug = slugifyCriterion(name);
+    if (liveCriteria.some(c => c.id === 'criteria_' + slug)) { showToast('A criterion with this name already exists.', 'error'); return; }
+    const id = 'criteria_' + slug;
     const rec = {
         id: id,
         name: name,
