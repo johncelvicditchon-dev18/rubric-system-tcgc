@@ -111,6 +111,7 @@
                 <a href="#" class="nav-link" data-section="studentList" onclick="showSection('studentList', this, event)"><i class="fas fa-list"></i> <span>STUDENT LIST</span></a>
                 <a href="#" class="nav-link" data-section="raterList" onclick="showSection('raterList', this, event)"><i class="fas fa-check-double"></i> <span>RATER LIST</span></a>
                 <a href="#" class="nav-link" data-section="groupResults" onclick="showSection('groupResults', this, event)"><i class="fas fa-chart-bar"></i> <span>GROUP RESULTS</span></a>
+                <a href="#" class="nav-link" data-section="criteria" onclick="showSection('criteria', this, event)"><i class="fas fa-clipboard-check"></i> <span>CRITERIA</span></a>
                 <a href="#" class="nav-link" data-section="sections" onclick="showSection('sections', this, event)"><i class="fas fa-layer-group"></i> <span>SECTIONS</span></a>
             </nav>
             <div class="sidebar-section-box">
@@ -283,6 +284,33 @@
                 <div class="card-body" id="adminGroupResults"></div>
             </div>
         </div>
+        <!-- Criteria Management Section -->
+        <div id="criteriaSection" class="content-section">
+            <div class="card"><div class="card-header"><h3><i class="fas fa-clipboard-check"></i> RUBRIC CRITERIA</h3></div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table id="criteriaTable" class="modal-table">
+                            <thead><tr><th>Pos</th><th>Criterion Name</th><th>Excellent (4)</th><th>Good (3)</th><th>Fair (2)</th><th>Needs Improvement (1)</th><th>Actions</th></tr></thead>
+                            <tbody id="criteriaTableBody"></tbody>
+                            <tfoot id="criteriaTableFoot">
+                                <tr id="addCriterionRow">
+                                    <td>&nbsp;</td>
+                                    <td><input type="text" id="newCriterionName" class="section-edit-input" placeholder="New criterion name" style="width:100%;"></td>
+                                    <td><input type="text" id="newCriterionDesc4" class="section-edit-input" placeholder="Excellent (4) description" style="width:100%;"></td>
+                                    <td><input type="text" id="newCriterionDesc3" class="section-edit-input" placeholder="Good (3) description" style="width:100%;"></td>
+                                    <td><input type="text" id="newCriterionDesc2" class="section-edit-input" placeholder="Fair (2) description" style="width:100%;"></td>
+                                    <td><input type="text" id="newCriterionDesc1" class="section-edit-input" placeholder="Needs Improvement (1) description" style="width:100%;"></td>
+                                    <td>
+                                        <button class="btn btn-success" style="padding:4px 10px;font-size:11px;" onclick="addNewCriterion()"><i class="fas fa-plus"></i> Add</button>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <p id="noCriteria" class="no-data"><i class="fas fa-inbox"></i> No criteria configured yet.</p>
+                </div>
+            </div>
+        </div>
         <!-- Sections Management Section -->
         <div id="sectionsSection" class="content-section">
             <div class="card"><div class="card-header"><h3><i class="fas fa-layer-group"></i> SECTIONS</h3></div>
@@ -340,75 +368,15 @@
                     <div class="rubrics-container">
                         <table class="rubrics-table">
                             <thead><tr><th>Criteria</th><th>Excellent (4)</th><th>Good (3)</th><th>Fair (2)</th><th>Needs Improvement (1)</th><th>Score</th></tr></thead>
-                            <tbody>
-                                <tr><td class="criteria-name">Content Accuracy</td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_content_accuracy" value="4" class="student-radio" data-criteria="content_accuracy" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Excellent (4)</span><span class="radio-desc">Information is accurate, complete, and well-researched.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_content_accuracy" value="3" class="student-radio" data-criteria="content_accuracy" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Good (3)</span><span class="radio-desc">Mostly accurate with minor errors.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_content_accuracy" value="2" class="student-radio" data-criteria="content_accuracy" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Fair (2)</span><span class="radio-desc">Some inaccuracies or missing information.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_content_accuracy" value="1" class="student-radio" data-criteria="content_accuracy" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Needs Improvement (1)</span><span class="radio-desc">Content lacks accuracy and completeness.</span></span></label></td>
-                                    <td class="score-cell"><span class="radio-score" id="score_content_accuracy">0</span></td></tr>
-                                <tr><td class="criteria-name">Understanding of Topic</td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_understanding_topic" value="4" class="student-radio" data-criteria="understanding_topic" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Excellent (4)</span><span class="radio-desc">Demonstrates excellent mastery and answers questions confidently.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_understanding_topic" value="3" class="student-radio" data-criteria="understanding_topic" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Good (3)</span><span class="radio-desc">Shows good understanding with minor difficulties.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_understanding_topic" value="2" class="student-radio" data-criteria="understanding_topic" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Fair (2)</span><span class="radio-desc">Basic understanding but struggles with some concepts.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_understanding_topic" value="1" class="student-radio" data-criteria="understanding_topic" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Needs Improvement (1)</span><span class="radio-desc">Limited understanding of the topic.</span></span></label></td>
-                                    <td class="score-cell"><span class="radio-score" id="score_understanding_topic">0</span></td></tr>
-                                <tr><td class="criteria-name">Organization & Structure</td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_organization_structure" value="4" class="student-radio" data-criteria="organization_structure" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Excellent (4)</span><span class="radio-desc">Presentation has a clear introduction, body, and conclusion.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_organization_structure" value="3" class="student-radio" data-criteria="organization_structure" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Good (3)</span><span class="radio-desc">Generally organized with minor lapses.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_organization_structure" value="2" class="student-radio" data-criteria="organization_structure" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Fair (2)</span><span class="radio-desc">Somewhat organized but difficult to follow at times.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_organization_structure" value="1" class="student-radio" data-criteria="organization_structure" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Needs Improvement (1)</span><span class="radio-desc">Lacks clear organization.</span></span></label></td>
-                                    <td class="score-cell"><span class="radio-score" id="score_organization_structure">0</span></td></tr>
-                                <tr><td class="criteria-name">Delivery & Communication</td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_delivery_communication" value="4" class="student-radio" data-criteria="delivery_communication" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Excellent (4)</span><span class="radio-desc">Speaks clearly, confidently, and maintains audience attention.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_delivery_communication" value="3" class="student-radio" data-criteria="delivery_communication" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Good (3)</span><span class="radio-desc">Generally clear and confident.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_delivery_communication" value="2" class="student-radio" data-criteria="delivery_communication" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Fair (2)</span><span class="radio-desc">Some issues with clarity or confidence.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_delivery_communication" value="1" class="student-radio" data-criteria="delivery_communication" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Needs Improvement (1)</span><span class="radio-desc">Difficult to hear or understand.</span></span></label></td>
-                                    <td class="score-cell"><span class="radio-score" id="score_delivery_communication">0</span></td></tr>
-                                <tr><td class="criteria-name">Audience Engagement</td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_audience_engagement" value="4" class="student-radio" data-criteria="audience_engagement" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Excellent (4)</span><span class="radio-desc">Actively engages audience through questions, examples, or interaction.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_audience_engagement" value="3" class="student-radio" data-criteria="audience_engagement" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Good (3)</span><span class="radio-desc">Maintains audience interest most of the time.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_audience_engagement" value="2" class="student-radio" data-criteria="audience_engagement" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Fair (2)</span><span class="radio-desc">Limited audience interaction.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_audience_engagement" value="1" class="student-radio" data-criteria="audience_engagement" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Needs Improvement (1)</span><span class="radio-desc">Little to no audience engagement.</span></span></label></td>
-                                    <td class="score-cell"><span class="radio-score" id="score_audience_engagement">0</span></td></tr>
-                                <tr><td class="criteria-name">Visual Aids/Materials</td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_visual_aids" value="4" class="student-radio" data-criteria="visual_aids" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Excellent (4)</span><span class="radio-desc">Materials are attractive, relevant, and enhance learning.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_visual_aids" value="3" class="student-radio" data-criteria="visual_aids" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Good (3)</span><span class="radio-desc">Materials are useful with minor improvements needed.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_visual_aids" value="2" class="student-radio" data-criteria="visual_aids" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Fair (2)</span><span class="radio-desc">Materials are somewhat relevant but lack effectiveness.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_visual_aids" value="1" class="student-radio" data-criteria="visual_aids" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Needs Improvement (1)</span><span class="radio-desc">Materials are missing or ineffective.</span></span></label></td>
-                                    <td class="score-cell"><span class="radio-score" id="score_visual_aids">0</span></td></tr>
-                                <tr><td class="criteria-name">Professional Appearance</td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_professional_appearance" value="4" class="student-radio" data-criteria="professional_appearance" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Excellent (4)</span><span class="radio-desc">Attire is neat, professional, and appropriate.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_professional_appearance" value="3" class="student-radio" data-criteria="professional_appearance" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Good (3)</span><span class="radio-desc">Generally appropriate attire.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_professional_appearance" value="2" class="student-radio" data-criteria="professional_appearance" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Fair (2)</span><span class="radio-desc">Somewhat inappropriate or untidy.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_professional_appearance" value="1" class="student-radio" data-criteria="professional_appearance" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Needs Improvement (1)</span><span class="radio-desc">Unprofessional appearance.</span></span></label></td>
-                                    <td class="score-cell"><span class="radio-score" id="score_professional_appearance">0</span></td></tr>
-                                <tr><td class="criteria-name">Teamwork/Collaboration</td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_teamwork_collaboration" value="4" class="student-radio" data-criteria="teamwork_collaboration" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Excellent (4)</span><span class="radio-desc">All members contribute equally and work cohesively.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_teamwork_collaboration" value="3" class="student-radio" data-criteria="teamwork_collaboration" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Good (3)</span><span class="radio-desc">Most members participate actively.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_teamwork_collaboration" value="2" class="student-radio" data-criteria="teamwork_collaboration" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Fair (2)</span><span class="radio-desc">Uneven participation among members.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_teamwork_collaboration" value="1" class="student-radio" data-criteria="teamwork_collaboration" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Needs Improvement (1)</span><span class="radio-desc">Lack of teamwork and coordination.</span></span></label></td>
-                                    <td class="score-cell"><span class="radio-score" id="score_teamwork_collaboration">0</span></td></tr>
-                                <tr><td class="criteria-name">Time Allocation: 30 mins</td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_time_allocation" value="4" class="student-radio" data-criteria="time_allocation" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Excellent (4)</span><span class="radio-desc">Ended the lessons on time.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_time_allocation" value="3" class="student-radio" data-criteria="time_allocation" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Good (3)</span><span class="radio-desc">Extended 5 mins on lesson discussion.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_time_allocation" value="2" class="student-radio" data-criteria="time_allocation" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Fair (2)</span><span class="radio-desc">Extended 10 mins on discussion.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_time_allocation" value="1" class="student-radio" data-criteria="time_allocation" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Needs Improvement (1)</span><span class="radio-desc">Extended 30 mins on discussion.</span></span></label></td>
-                                    <td class="score-cell"><span class="radio-score" id="score_time_allocation">0</span></td></tr>
-                                <tr><td class="criteria-name">Strategies & Enjoyment</td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_strategies" value="4" class="student-radio" data-criteria="strategies" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Excellent (4)</span><span class="radio-desc">Highly enjoyable, creative, and energetic presentation.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_strategies" value="3" class="student-radio" data-criteria="strategies" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Good (3)</span><span class="radio-desc">Mostly enjoyable with some creativity.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_strategies" value="2" class="student-radio" data-criteria="strategies" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Fair (2)</span><span class="radio-desc">Limited excitement or creativity.</span></span></label></td>
-                                    <td><label class="radio-label-cell"><input type="radio" name="rubric_strategies" value="1" class="student-radio" data-criteria="strategies" onchange="updateStudentScore()"><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">Needs Improvement (1)</span><span class="radio-desc">Lacks enthusiasm and interest.</span></span></label></td>
-                                    <td class="score-cell"><span class="radio-score" id="score_strategies">0</span></td></tr>
-                            </tbody>
+                            <tbody id="studentRubricBody"></tbody>
                             <tfoot><tr><td colspan="6" class="total-score" id="studentTotalScore">TOTAL SCORE: 0</td></tr></tfoot>
                         </table>
                     </div>
+                    <p id="noRubricCriteria" class="no-data" style="display:none;"><i class="fas fa-inbox"></i> No criteria configured yet.</p>
                 </div>
                 <div class="student-rating-actions">
                     <button class="btn btn-cancel" onclick="closeStudentRating()"><i class="fas fa-times"></i> Cancel</button>
-                    <button class="btn btn-rate" onclick="handleSaveStudentRating()"><i class="fas fa-star"></i> Submit Rating</button>
+                    <button class="btn btn-rate" id="submitStudentBtn" onclick="handleSaveStudentRating()"><i class="fas fa-star"></i> Submit Rating</button>
                 </div>
             </div>
         </div>
@@ -436,7 +404,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="assets/js/firebase-init.js?v=2"></script>
-    <script src="assets/js/firestore-api.js?v=4"></script>
-    <script src="assets/js/script.js?v=14"></script>
+    <script src="assets/js/firestore-api.js?v=5"></script>
+    <script src="assets/js/script.js?v=15"></script>
 </body>
 </html>
