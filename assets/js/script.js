@@ -1111,6 +1111,14 @@ async function deleteSectionRow(sectionName) {
     }
 }
 
+// Auto-grows a text input's width to fit its content (with a small padding).
+function autoGrowInput(el) {
+    if (!el) return;
+    el.style.width = 'auto';
+    el.style.minWidth = '140px';
+    el.style.width = (el.scrollWidth + 6) + 'px';
+}
+
 // ========== CRITERIA MANAGEMENT ==========
 async function loadCriteriaManagement() {
     try {
@@ -1137,11 +1145,11 @@ async function loadCriteriaManagement() {
                 : `<button class="btn" style="padding:4px 8px;font-size:11px;" disabled><i class="fas fa-arrow-down"></i></button>`;
             return `<tr>
                 <td>${i + 1}</td>
-                <td><input type="text" id="crit_name_${rid}" value="${escHtml(c.name)}" class="section-edit-input" style="width:100%;"></td>
-                <td><input type="text" id="crit_desc4_${rid}" value="${escHtml(c.desc4 || '')}" class="section-edit-input" style="width:100%;"></td>
-                <td><input type="text" id="crit_desc3_${rid}" value="${escHtml(c.desc3 || '')}" class="section-edit-input" style="width:100%;"></td>
-                <td><input type="text" id="crit_desc2_${rid}" value="${escHtml(c.desc2 || '')}" class="section-edit-input" style="width:100%;"></td>
-                <td><input type="text" id="crit_desc1_${rid}" value="${escHtml(c.desc1 || '')}" class="section-edit-input" style="width:100%;"></td>
+                <td><input type="text" id="crit_name_${rid}" value="${escHtml(c.name)}" class="section-edit-input" oninput="autoGrowInput(this)" style="width:100%;"></td>
+                <td><input type="text" id="crit_desc4_${rid}" value="${escHtml(c.desc4 || '')}" class="section-edit-input" oninput="autoGrowInput(this)" style="width:100%;"></td>
+                <td><input type="text" id="crit_desc3_${rid}" value="${escHtml(c.desc3 || '')}" class="section-edit-input" oninput="autoGrowInput(this)" style="width:100%;"></td>
+                <td><input type="text" id="crit_desc2_${rid}" value="${escHtml(c.desc2 || '')}" class="section-edit-input" oninput="autoGrowInput(this)" style="width:100%;"></td>
+                <td><input type="text" id="crit_desc1_${rid}" value="${escHtml(c.desc1 || '')}" class="section-edit-input" oninput="autoGrowInput(this)" style="width:100%;"></td>
                 <td style="white-space:nowrap;">
                     ${upBtn} ${downBtn}
                     <button class="btn btn-success" style="padding:4px 8px;font-size:11px;" onclick="saveCriterionRow('${rid}')"><i class="fas fa-save"></i></button>
@@ -1149,6 +1157,13 @@ async function loadCriteriaManagement() {
                 </td>
             </tr>`;
         }).join('');
+
+        // Auto-grow each input so existing long values are fully visible immediately.
+        criteria.forEach((c) => {
+            ['crit_name_' + c.id, 'crit_desc4_' + c.id, 'crit_desc3_' + c.id, 'crit_desc2_' + c.id, 'crit_desc1_' + c.id].forEach((inputId) => {
+                autoGrowInput(document.getElementById(inputId));
+            });
+        });
     } catch (e) {
         console.error('loadCriteriaManagement error:', e);
     }
