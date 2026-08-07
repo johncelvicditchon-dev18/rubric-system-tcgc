@@ -779,15 +779,15 @@ async function exportRaterListPDF() {
         for (let g = 1; g <= 10; g++) {
             const voted = r['GROUP ' + g];
             if (voted) {
-                html += '<td>&#10003;</td>';
+                html += '<td style="color:#16a34a;font-weight:bold;">&#10003;</td>';
             } else {
-                html += '<td>&#10007;</td>';
+                html += '<td style="color:#dc2626;font-weight:bold;">&#10007;</td>';
             }
         }
         html += '</tr>';
     });
     html += '</tbody></table>';
-    html += `<div class="table-note">VOTED: &#10003;  MISSED: &#10007;</div>`;
+    html += `<div class="table-note">RATED: &#10003;  MISSED: &#10007;</div>`;
     html += `<div class="signatures">
         <div class="sig-block"><span class="sig-line">${escHtml(currentInstructor)}</span><div class="sig-label">PREPARED BY</div></div>
         <div class="sig-block"><span class="sig-line">&nbsp;</span><div class="sig-label">NOTED BY</div></div>
