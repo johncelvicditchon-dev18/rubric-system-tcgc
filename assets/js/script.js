@@ -9,6 +9,25 @@ let studentRatings = {};
 let studentCurrentGroup = null;
 let studentGroupStatus = {};
 
+// Live rubric criteria (single source of truth, loaded from Firestore).
+let liveCriteria = [];
+
+async function loadLiveCriteria() {
+    try {
+        const data = await Api.getCriteria();
+        liveCriteria = (Array.isArray(data) && data.length) ? data : [];
+    } catch (e) {
+        console.error('loadLiveCriteria error:', e);
+        liveCriteria = [];
+    }
+    return liveCriteria;
+}
+
+// Max possible rubric score with the current live criteria (4 points each).
+function criteriaDenominator() {
+    return Math.max(liveCriteria.length, 1) * 4;
+}
+
 async function loadSectionDropdown() {
     if (!currentInstructor) return;
     const sel = document.getElementById('sectionSelect');
@@ -86,6 +105,7 @@ function reloadCurrentView() {
     else if (id === 'raterList') loadRaterList();
     else if (id === 'groupResults') loadAdminGroupResults();
     else if (id === 'sections') loadSectionsManagement();
+    else if (id === 'criteria') loadCriteriaManagement();
 }
 
 async function restoreSectionState() {
@@ -347,7 +367,7 @@ function showSection(section, el, e) {
     const sectionEl = document.getElementById(section + 'Section');
     if (sectionEl) sectionEl.classList.add('active');
 
-    const titles = { account: 'ACCOUNT', studentList: 'STUDENT LIST', raterList: 'RATER LIST', groupResults: 'GROUP RESULTS', sections: 'SECTIONS' };
+    const titles = { account: 'ACCOUNT', studentList: 'STUDENT LIST', raterList: 'RATER LIST', groupResults: 'GROUP RESULTS', criteria: 'RUBRIC CRITERIA', sections: 'SECTIONS' };
     document.getElementById('sectionTitle').textContent = titles[section] || section.toUpperCase();
 
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
@@ -356,6 +376,7 @@ function showSection(section, el, e) {
     if (section === 'studentList') loadStudentRatingsTable();
     if (section === 'raterList') loadRaterList();
     if (section === 'groupResults') loadAdminGroupResults();
+    if (section === 'criteria') loadCriteriaManagement();
     if (section === 'sections') loadSectionsManagement();
  
     if (window.matchMedia('(max-width: 768px)').matches || window.innerWidth <= 768) {
@@ -370,6 +391,8 @@ async function initStudentDashboard() {
     document.getElementById('studentGroupsView').style.display = 'block';
     document.getElementById('studentRatingView').style.display = 'none';
     studentCurrentGroup = null;
+
+    await loadLiveCriteria();
 
     try {
         const data = await Api.getMyRatings(currentUserName, currentStudentSection);
@@ -413,7 +436,7 @@ function renderStudentGroups() {
         } else if (isClosed) {
             statusHtml = '<span class="closed-badge"><i class="fas fa-lock"></i> CLOSED</span>';
         } else if (hasRated) {
-            statusHtml = `<span class="score-badge">${displayScore}/40</span>`;
+            statusHtml = `<span class="score-badge">${displayScore}/${criteriaDenominator()}</span>`;
         } else {
             statusHtml = '<span class="rate-badge-inline">RATE HERE</span>';
         }
@@ -439,7 +462,7 @@ function renderStudentGroups() {
     });
 }
 
-function openStudentGroupRating(groupName) {
+async function openStudentGroupRating(groupName) {
     const isClosed = studentGroupStatus[groupName] === 1;
     if (isClosed) {
         showToast('This group is closed for rating', 'error');
@@ -456,20 +479,47 @@ function openStudentGroupRating(groupName) {
     document.getElementById('studentRatingView').style.display = 'block';
     document.getElementById('studentRatingTitle').textContent = groupName;
 
+    const criteria = await loadLiveCriteria();
     const existing = studentRatings[groupName];
-    document.querySelectorAll('.student-radio').forEach(r => { r.checked = false; });
-    if (existing && existing.total_score > 0) {
-        const criteriaFields = ['content_accuracy','understanding_topic','organization_structure','delivery_communication','audience_engagement','visual_aids','professional_appearance','teamwork_collaboration','time_allocation','strategies'];
-        criteriaFields.forEach(field => {
-            const val = existing[field];
-            if (val && val > 0) {
-                const radio = document.querySelector(`.student-radio[data-criteria="${field}"][value="${val}"]`);
-                if (radio) radio.checked = true;
-            }
-        });
+    renderStudentRubric(criteria, existing);
+    document.getElementById('studentTotalScore').textContent = 'TOTAL SCORE: 0';
+
+    const emptyMsg = document.getElementById('noRubricCriteria');
+    const submitBtn = document.getElementById('submitStudentBtn');
+    if (criteria.length === 0) {
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        if (submitBtn) submitBtn.disabled = true;
+    } else {
+        if (emptyMsg) emptyMsg.style.display = 'none';
+        if (submitBtn) submitBtn.disabled = false;
     }
-    document.querySelectorAll('.radio-score').forEach(el => { el.textContent = '0'; });
     updateStudentScore();
+}
+
+// Renders the student rating rows dynamically from the LIVE criteria list.
+function renderStudentRubric(criteria, existing) {
+    const tbody = document.getElementById('studentRubricBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (!criteria || criteria.length === 0) return;
+
+    const levels = [
+        { v: 4, label: 'Excellent (4)', key: 'desc4' },
+        { v: 3, label: 'Good (3)', key: 'desc3' },
+        { v: 2, label: 'Fair (2)', key: 'desc2' },
+        { v: 1, label: 'Needs Improvement (1)', key: 'desc1' }
+    ];
+
+    const prev = existing && existing.total_score > 0 ? existing : {};
+    criteria.forEach(c => {
+        const rname = 'rubric_' + c.id;
+        let cells = '';
+        levels.forEach(lv => {
+            const checked = (prev[c.id] === lv.v) ? ' checked' : '';
+            cells += `<td><label class="radio-label-cell"><input type="radio" name="${rname}" value="${lv.v}" class="student-radio" data-criteria="${c.id}" onchange="updateStudentScore()"${checked}><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">${lv.label}</span><span class="radio-desc">${escHtml(c[lv.key] || '')}</span></span></label></td>`;
+        });
+        tbody.innerHTML += `<tr><td class="criteria-name">${escHtml(c.name)}</td>${cells}<td class="score-cell"><span class="radio-score" id="score_${c.id}">0</span></td></tr>`;
+    });
 }
 
 function closeStudentRating() {
@@ -495,10 +545,12 @@ function updateStudentScore() {
 async function handleSaveStudentRating() {
     if (!studentCurrentGroup) return;
 
+    if (liveCriteria.length === 0) { showToast('No criteria configured yet.', 'error'); return; }
+
     const scores = {};
     let total = 0;
     const checkedCount = document.querySelectorAll('.student-radio:checked').length;
-    if (checkedCount < 10) { showToast('Please select a score for all criteria', 'error'); return; }
+    if (checkedCount < liveCriteria.length) { showToast('Please select a score for all criteria', 'error'); return; }
     document.querySelectorAll('.student-radio:checked').forEach(r => {
         const val = parseInt(r.value) || 0;
         scores[r.getAttribute('data-criteria')] = val;
@@ -528,6 +580,7 @@ async function handleSaveStudentRating() {
 
 // ========== ADMIN: STUDENT RATINGS TABLE ==========
 async function loadStudentRatingsTable() {
+    await loadLiveCriteria();
     try {
         const data = await Api.getStudentRatingsTable(currentInstructor, currentSection);
 
@@ -574,7 +627,7 @@ function renderStudentRatingsTable(ratings) {
             const gn = 'GROUP ' + g;
             const score = r[gn];
             if (score !== null && score !== undefined) {
-                bodyHtml += `<td class="score-cell"><span class="score-badge">${score}/40</span></td>`;
+                bodyHtml += `<td class="score-cell"><span class="score-badge">${score}/${criteriaDenominator()}</span></td>`;
                 colTotals[gn] += score;
             } else {
                 bodyHtml += '<td class="score-cell no-score">-</td>';
@@ -602,6 +655,7 @@ function escHtml(s) {
 
 async function exportStudentPDF() {
     if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
+    await loadLiveCriteria();
     const data = await Api.getStudentRatingsTable(currentInstructor, currentSection);
     if (data.status !== 'success') { showToast('Error loading ratings', 'error'); return; }
     const ratings = data.ratings || [];
@@ -668,7 +722,7 @@ async function exportStudentPDF() {
             const gn = 'GROUP ' + g;
             const score = r[gn];
             if (score !== null && score !== undefined) {
-                html += `<td>${score}/40</td>`;
+                html += `<td>${score}/${criteriaDenominator()}</td>`;
                 colTotals[gn] += score;
             } else {
                 html += '<td>&ndash;</td>';
@@ -718,6 +772,7 @@ async function exportStudentPDF() {
 
 async function exportRaterListPDF() {
     if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
+    await loadLiveCriteria();
     const data = await Api.getRaterList(currentInstructor, currentSection);
     if (data.status !== 'success') { showToast('Error loading rater list', 'error'); return; }
     const raters = data.raters || [];
@@ -856,6 +911,7 @@ function closeStudentDetail(e) {
 }
 
 async function loadStudentDetail(name) {
+    await loadLiveCriteria();
     try {
         const data = await Api.getStudentDetail(name, currentInstructor, currentSection);
         if (data.status === 'success') {
@@ -884,14 +940,14 @@ function renderStudentDetail(ratings) {
         html += `<div class="detail-group-card">
             <div class="detail-group-header">
                 <span class="detail-group-name">${r.group_name}</span>
-                <span class="detail-total-score">${r.total_score}/40</span>
+                <span class="detail-total-score">${r.total_score}/${criteriaDenominator()}</span>
             </div>
             <div class="detail-group-body">`;
 
-        CRITERIA_KEYS.forEach(key => {
-            const score = parseInt(r[key]) || 0;
+        liveCriteria.forEach(c => {
+            const score = parseInt(r[c.id]) || 0;
             html += `<div class="detail-criteria-row">
-                <span class="detail-criteria-name">${CRITERIA_LABELS[key]}</span>
+                <span class="detail-criteria-name">${escHtml(c.name)}</span>
                 <div class="detail-score-dots">`;
 
             for (let v = 4; v >= 1; v--) {
@@ -1049,6 +1105,156 @@ async function deleteSectionRow(sectionName) {
             reloadCurrentView();
         } else {
             showToast(data.message || 'Error deleting section', 'error');
+        }
+    } catch (e) {
+        showToast('Network error', 'error');
+    }
+}
+
+// ========== CRITERIA MANAGEMENT ==========
+async function loadCriteriaManagement() {
+    try {
+        const criteria = await loadLiveCriteria();
+        const tbody = document.getElementById('criteriaTableBody');
+        const noData = document.getElementById('noCriteria');
+        if (!tbody) return;
+
+        if (criteria.length === 0) {
+            tbody.innerHTML = '';
+            if (noData) noData.style.display = 'block';
+            return;
+        }
+        if (noData) noData.style.display = 'none';
+
+        tbody.innerHTML = criteria.map((c, i) => {
+            const rid = c.id;
+            const n = criteria.length;
+            const upBtn = i > 0
+                ? `<button class="btn" style="padding:4px 8px;font-size:11px;" onclick="moveCriterion('${rid}', -1)"><i class="fas fa-arrow-up"></i></button>`
+                : `<button class="btn" style="padding:4px 8px;font-size:11px;" disabled><i class="fas fa-arrow-up"></i></button>`;
+            const downBtn = i < n - 1
+                ? `<button class="btn" style="padding:4px 8px;font-size:11px;" onclick="moveCriterion('${rid}', 1)"><i class="fas fa-arrow-down"></i></button>`
+                : `<button class="btn" style="padding:4px 8px;font-size:11px;" disabled><i class="fas fa-arrow-down"></i></button>`;
+            return `<tr>
+                <td>${i + 1}</td>
+                <td><input type="text" id="crit_name_${rid}" value="${escHtml(c.name)}" class="section-edit-input" style="width:100%;"></td>
+                <td><input type="text" id="crit_desc4_${rid}" value="${escHtml(c.desc4 || '')}" class="section-edit-input" style="width:100%;"></td>
+                <td><input type="text" id="crit_desc3_${rid}" value="${escHtml(c.desc3 || '')}" class="section-edit-input" style="width:100%;"></td>
+                <td><input type="text" id="crit_desc2_${rid}" value="${escHtml(c.desc2 || '')}" class="section-edit-input" style="width:100%;"></td>
+                <td><input type="text" id="crit_desc1_${rid}" value="${escHtml(c.desc1 || '')}" class="section-edit-input" style="width:100%;"></td>
+                <td style="white-space:nowrap;">
+                    ${upBtn} ${downBtn}
+                    <button class="btn btn-success" style="padding:4px 8px;font-size:11px;" onclick="saveCriterionRow('${rid}')"><i class="fas fa-save"></i></button>
+                    <button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="deleteCriterionRow('${rid}')"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+    } catch (e) {
+        console.error('loadCriteriaManagement error:', e);
+    }
+}
+
+// Generates a stable snake_case slug id for a NEW criterion (never changed on rename).
+function slugifyCriterion(name) {
+    const slug = String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    return slug || 'criterion';
+}
+
+async function addNewCriterion() {
+    const name = document.getElementById('newCriterionName').value.trim();
+    if (!name) { showToast('Enter a criterion name', 'error'); return; }
+    if (liveCriteria.length >= 20) { showToast('Maximum of 20 criteria reached.', 'error'); return; }
+
+    const id = 'criteria_' + slugifyCriterion(name);
+    const rec = {
+        id: id,
+        name: name,
+        desc4: document.getElementById('newCriterionDesc4').value.trim(),
+        desc3: document.getElementById('newCriterionDesc3').value.trim(),
+        desc2: document.getElementById('newCriterionDesc2').value.trim(),
+        desc1: document.getElementById('newCriterionDesc1').value.trim(),
+        position: liveCriteria.length
+    };
+
+    try {
+        const data = await Api.saveCriterion(rec);
+        if (data.status === 'success') {
+            showToast('Criterion "' + name + '" added', 'success');
+            document.getElementById('newCriterionName').value = '';
+            document.getElementById('newCriterionDesc4').value = '';
+            document.getElementById('newCriterionDesc3').value = '';
+            document.getElementById('newCriterionDesc2').value = '';
+            document.getElementById('newCriterionDesc1').value = '';
+            loadCriteriaManagement();
+        } else {
+            showToast(data.message || 'Error adding criterion', 'error');
+        }
+    } catch (e) {
+        showToast('Network error', 'error');
+    }
+}
+
+async function saveCriterionRow(id) {
+    const name = document.getElementById('crit_name_' + id).value.trim();
+    if (!name) { showToast('Criterion name cannot be empty', 'error'); return; }
+    const idx = liveCriteria.findIndex(c => c.id === id);
+    const rec = {
+        id: id,
+        name: name,
+        desc4: document.getElementById('crit_desc4_' + id).value.trim(),
+        desc3: document.getElementById('crit_desc3_' + id).value.trim(),
+        desc2: document.getElementById('crit_desc2_' + id).value.trim(),
+        desc1: document.getElementById('crit_desc1_' + id).value.trim(),
+        position: idx >= 0 ? liveCriteria[idx].position : liveCriteria.length
+    };
+    try {
+        const data = await Api.saveCriterion(rec);
+        if (data.status === 'success') {
+            showToast('Criterion saved', 'success');
+            loadCriteriaManagement();
+        } else {
+            showToast(data.message || 'Error saving criterion', 'error');
+        }
+    } catch (e) {
+        showToast('Network error', 'error');
+    }
+}
+
+async function deleteCriterionRow(id) {
+    if (liveCriteria.length <= 1) { showToast('At least one criterion is required.', 'error'); return; }
+    const c = liveCriteria.find(x => x.id === id);
+    if (!confirm('Delete criterion "' + (c ? c.name : id) + '"? This cannot be undone.')) return;
+    try {
+        const data = await Api.deleteCriterion(id);
+        if (data.status === 'success') {
+            showToast('Criterion deleted', 'success');
+            loadCriteriaManagement();
+        } else {
+            showToast(data.message || 'Error deleting criterion', 'error');
+        }
+    } catch (e) {
+        showToast('Network error', 'error');
+    }
+}
+
+async function moveCriterion(id, dir) {
+    const idx = liveCriteria.findIndex(c => c.id === id);
+    if (idx < 0) return;
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= liveCriteria.length) return;
+
+    const arr = liveCriteria.slice();
+    const moved = arr.splice(idx, 1)[0];
+    arr.splice(newIdx, 0, moved);
+    const orderedIds = arr.map(c => c.id);
+
+    try {
+        const data = await Api.reorderCriteria(orderedIds);
+        if (data.status === 'success') {
+            showToast('Criteria reordered', 'success');
+            loadCriteriaManagement();
+        } else {
+            showToast(data.message || 'Error reordering criteria', 'error');
         }
     } catch (e) {
         showToast('Network error', 'error');

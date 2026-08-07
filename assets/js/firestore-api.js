@@ -3,10 +3,75 @@ const Api = (() => {
     const COLL_SECTIONS = 'section_config';
     const COLL_GROUPS = 'groups_table';
     const COLL_RATINGS = 'group_ratings';
+    const COLL_CRITERIA = 'rubric_criteria';
 
     const GROUP_NAMES = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
     const MEMBER_FIELDS = ['member1_name','member2_name','member3_name','member4_name','member5_name'];
+    // LEGACY fallback keys — kept ONLY for backward compatibility when reading old
+    // rating docs. The PRIMARY source of criteria is the `rubric_criteria` collection
+    // read through getCriteria().
     const CRITERIA = ['content_accuracy','understanding_topic','organization_structure','delivery_communication','audience_engagement','visual_aids','professional_appearance','teamwork_collaboration','time_allocation','strategies'];
+
+    // 10 default criteria seeded into `rubric_criteria` on first load (AC1).
+    // Descriptions copied VERBATIM from the rubric table in index.html.
+    const DEFAULT_CRITERIA = [
+        { id: 'content_accuracy', name: 'Content Accuracy', desc4: 'Information is accurate, complete, and well-researched.', desc3: 'Mostly accurate with minor errors.', desc2: 'Some inaccuracies or missing information.', desc1: 'Content lacks accuracy and completeness.' },
+        { id: 'understanding_topic', name: 'Understanding of Topic', desc4: 'Demonstrates excellent mastery and answers questions confidently.', desc3: 'Shows good understanding with minor difficulties.', desc2: 'Basic understanding but struggles with some concepts.', desc1: 'Limited understanding of the topic.' },
+        { id: 'organization_structure', name: 'Organization & Structure', desc4: 'Presentation has a clear introduction, body, and conclusion.', desc3: 'Generally organized with minor lapses.', desc2: 'Somewhat organized but difficult to follow at times.', desc1: 'Lacks clear organization.' },
+        { id: 'delivery_communication', name: 'Delivery & Communication', desc4: 'Speaks clearly, confidently, and maintains audience attention.', desc3: 'Generally clear and confident.', desc2: 'Some issues with clarity or confidence.', desc1: 'Difficult to hear or understand.' },
+        { id: 'audience_engagement', name: 'Audience Engagement', desc4: 'Actively engages audience through questions, examples, or interaction.', desc3: 'Maintains audience interest most of the time.', desc2: 'Limited audience interaction.', desc1: 'Little to no audience engagement.' },
+        { id: 'visual_aids', name: 'Visual Aids/Materials', desc4: 'Materials are attractive, relevant, and enhance learning.', desc3: 'Materials are useful with minor improvements needed.', desc2: 'Materials are somewhat relevant but lack effectiveness.', desc1: 'Materials are missing or ineffective.' },
+        { id: 'professional_appearance', name: 'Professional Appearance', desc4: 'Attire is neat, professional, and appropriate.', desc3: 'Generally appropriate attire.', desc2: 'Somewhat inappropriate or untidy.', desc1: 'Unprofessional appearance.' },
+        { id: 'teamwork_collaboration', name: 'Teamwork/Collaboration', desc4: 'All members contribute equally and work cohesively.', desc3: 'Most members participate actively.', desc2: 'Uneven participation among members.', desc1: 'Lack of teamwork and coordination.' },
+        { id: 'time_allocation', name: 'Time Allocation: 30 mins', desc4: 'Ended the lessons on time.', desc3: 'Extended 5 mins on lesson discussion.', desc2: 'Extended 10 mins on discussion.', desc1: 'Extended 30 mins on discussion.' },
+        { id: 'strategies', name: 'Strategies & Enjoyment', desc4: 'Highly enjoyable, creative, and energetic presentation.', desc3: 'Mostly enjoyable with some creativity.', desc2: 'Limited excitement or creativity.', desc1: 'Lacks enthusiasm and interest.' }
+    ];
+
+    // In-memory cache of live criteria (ordered by position), one per session.
+    // Invalidated on save/delete/reorder.
+    let criteriaCache = null;
+
+    // Seeds the 10 default criteria into `rubric_criteria` if the collection is
+    // empty. Idempotent (checks existing count > 0).
+    async function seedCriteriaIfEmpty() {
+        const snap = await db.collection(COLL_CRITERIA).get();
+        if (snap.size > 0) return { status: 'success', seeded: false };
+        const batch = db.batch();
+        DEFAULT_CRITERIA.forEach((c, i) => {
+            batch.set(db.collection(COLL_CRITERIA).doc('C_' + c.id), {
+                id: c.id,
+                name: c.name,
+                desc4: c.desc4,
+                desc3: c.desc3,
+                desc2: c.desc2,
+                desc1: c.desc1,
+                position: i,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+        await batch.commit();
+        return { status: 'success', seeded: true };
+    }
+
+    // Returns the live criteria ordered by position (the single source of truth).
+    async function getCriteria() {
+        if (criteriaCache) return criteriaCache;
+        await seedCriteriaIfEmpty();
+        const snap = await db.collection(COLL_CRITERIA).orderBy('position', 'asc').get();
+        criteriaCache = snap.docs.map(d => {
+            const data = d.data();
+            return {
+                id: data.id,
+                name: data.name || '',
+                desc4: data.desc4 || '',
+                desc3: data.desc3 || '',
+                desc2: data.desc2 || '',
+                desc1: data.desc1 || '',
+                position: data.position || 0
+            };
+        });
+        return criteriaCache;
+    }
 
     function enc(v) { return encodeURIComponent(String(v == null ? '' : v)); }
     function docKey(prefix, ...parts) { return prefix + parts.map(enc).join('_'); }
@@ -429,7 +494,11 @@ const Api = (() => {
                 total_score: payload.total_score || 0,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            CRITERIA.forEach(c => { data[c] = s[c] || 0; });
+            // Write per-key fields for the LIVE criteria ids only (single source of
+            // truth). Unknown/legacy keys not present in the live set are skipped so
+            // old behavior for removed criteria stays preserved in existing docs.
+            const live = await getCriteria();
+            live.forEach(c => { data[c.id] = s[c.id] || 0; });
             await db.collection(COLL_RATINGS).doc(ratingDocId(rater_name, group_name, section)).set(data);
             return { status: 'success', message: 'Rating saved successfully!', total_score: data.total_score };
         },
@@ -507,12 +576,52 @@ const Api = (() => {
             if (section) conds.push(['section', '==', section]);
             const docs = await queryWhere(COLL_RATINGS, conds);
             docs.sort((a, b) => String(a.group_name).localeCompare(String(b.group_name)));
+            const live = await getCriteria();
             const ratings = docs.map(d => {
                 const entry = { group_name: d.group_name, total_score: d.total_score || 0 };
-                CRITERIA.forEach(c => { entry[c] = d[c] || 0; });
+                live.forEach(c => { entry[c.id] = d[c.id] || 0; });
                 return entry;
             });
             return { status: 'success', rater_name: rater_name, ratings: ratings };
+        },
+
+        // ===== CRITERIA (RUBRIC) =====
+        async getCriteria() { return getCriteria(); },
+
+        async seedCriteriaIfEmpty() { return seedCriteriaIfEmpty(); },
+
+        async saveCriterion(rec) {
+            if (!rec || !rec.id) return { status: 'error', message: 'Criterion id required' };
+            await db.collection(COLL_CRITERIA).doc('C_' + rec.id).set({
+                id: rec.id,
+                name: String(rec.name || '').trim(),
+                desc4: String(rec.desc4 || '').trim(),
+                desc3: String(rec.desc3 || '').trim(),
+                desc2: String(rec.desc2 || '').trim(),
+                desc1: String(rec.desc1 || '').trim(),
+                position: typeof rec.position === 'number' ? rec.position : 0,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            criteriaCache = null;
+            return { status: 'success', message: 'Criterion saved' };
+        },
+
+        async deleteCriterion(id) {
+            if (!id) return { status: 'error', message: 'Criterion id required' };
+            await db.collection(COLL_CRITERIA).doc('C_' + id).delete();
+            criteriaCache = null;
+            return { status: 'success', message: 'Criterion deleted' };
+        },
+
+        async reorderCriteria(orderedIds) {
+            if (!Array.isArray(orderedIds) || orderedIds.length === 0) return { status: 'error', message: 'orderedIds required' };
+            const batch = db.batch();
+            orderedIds.forEach((id, i) => {
+                batch.update(db.collection(COLL_CRITERIA).doc('C_' + id), { position: i });
+            });
+            await batch.commit();
+            criteriaCache = null;
+            return { status: 'success', message: 'Criteria order updated' };
         }
     };
 })();
