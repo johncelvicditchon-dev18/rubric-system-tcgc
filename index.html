@@ -263,7 +263,9 @@
                     <input type="text" id="raterSearchInput" class="search-input header-search" placeholder="Search rater..." oninput="filterRaterList()">
                 </div>
                 <div class="card-body">
-                    <button class="btn-pdf" onclick="exportRaterListPDF()" title="Print" style="margin-bottom:10px;"><i class="fas fa-print"></i> Print</button>
+                    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+                        <button class="btn-pdf" onclick="exportRaterListPDF()" title="Print"><i class="fas fa-print"></i> Print</button>
+                    </div>
                     <div class="table-container">
                         <table id="raterListTable">
                             <thead id="raterListHead"></thead>
