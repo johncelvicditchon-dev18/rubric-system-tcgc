@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/styles.css?v=5">
+    <link rel="stylesheet" href="assets/css/styles.css?v=6">
     <link rel="icon" type="image/png" href="assets/images/logo-toggle.png">
 </head>
 <body>
@@ -146,40 +146,62 @@
 
         <!-- Account Section -->
         <div id="accountSection" class="content-section active">
-            <div class="card"><div class="card-header"><h3><i class="fas fa-user-circle"></i> ACCOUNT INFORMATION</h3></div>
-                <div class="card-body"><table class="account-table"><thead><tr><th>Field</th><th>Details</th><th></th></tr></thead><tbody>
-                    <tr><td><i class="fas fa-id-card"></i> Name</td><td id="accountName"></td><td></td></tr>
-                    <tr id="usernameRow"><td><i class="fas fa-user"></i> Username</td>
-                        <td id="accountUsernameView"></td>
-                        <td class="edit-cell"><button class="btn-edit-inline" onclick="startEditUsername()"><i class="fas fa-pen"></i></button></td>
-                    </tr>
-                    <tr id="passwordRow"><td><i class="fas fa-lock"></i> Password</td>
-                        <td>
-                            <div class="password-field">
-                                <span id="accountPassword" class="password-hidden">********</span>
-                                <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility()"><i class="fas fa-eye"></i></button>
-                            </div>
-                        </td>
-                        <td class="edit-cell"><button class="btn-edit-inline" onclick="startEditPassword()"><i class="fas fa-pen"></i></button></td>
-                    </tr>
-                    <tr><td><i class="fas fa-check-circle"></i> Status</td><td style="color:#115c2e;font-weight:700;">Approved</td><td></td></tr>
-                </tbody></table></div>
+
+            <div class="profile-hero">
+                <div class="profile-hero-header">
+                    <div class="profile-avatar-circle" id="profileAvatar"></div>
+                    <div class="profile-hero-text">
+                        <h2 class="profile-name-display" id="accountName"></h2>
+                        <span class="profile-role-pill">INSTRUCTOR</span>
+                        <span class="profile-status-pill status-approved">APPROVED</span>
+                    </div>
+                </div>
+                <div class="profile-details-grid">
+                    <div class="profile-detail-row">
+                        <span class="profile-detail-label"><i class="fas fa-id-card"></i> FULL NAME</span>
+                        <span class="profile-detail-value" id="accountNameValue"></span>
+                    </div>
+                    <div class="profile-detail-row" id="usernameRow">
+                        <span class="profile-detail-label"><i class="fas fa-user"></i> USERNAME</span>
+                        <span class="profile-detail-value" id="accountUsernameView"></span>
+                        <button class="profile-edit-btn" onclick="startEditUsername()" aria-label="Edit username"><i class="fas fa-pen"></i></button>
+                    </div>
+                    <div class="profile-detail-row" id="passwordRow">
+                        <span class="profile-detail-label"><i class="fas fa-lock"></i> PASSWORD</span>
+                        <span class="profile-detail-value">
+                            <span id="accountPassword" class="password-hidden">********</span>
+                            <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility()" aria-label="Toggle password visibility"><i class="fas fa-eye"></i></button>
+                        </span>
+                        <button class="profile-edit-btn" onclick="startEditPassword()" aria-label="Edit password"><i class="fas fa-pen"></i></button>
+                    </div>
+                    <div class="profile-detail-row">
+                        <span class="profile-detail-label"><i class="fas fa-check-circle"></i> STATUS</span>
+                        <span class="profile-detail-value"><span class="profile-status-pill status-approved">APPROVED</span></span>
+                    </div>
+                </div>
             </div>
 
-            <div class="card" style="margin-top:20px;">
-                <div class="card-header"><h3><i class="fas fa-hourglass-half"></i> PENDING ACCOUNTS</h3></div>
-                <div class="card-body">
-                    <p style="color:#888;font-size:12px;margin-bottom:12px;">Manage new instructor account requests.</p>
+            <div class="card account-card">
+                <div class="card-header account-card-header">
+                    <h3><i class="fas fa-hourglass-half"></i> PENDING ACCOUNTS</h3>
+                    <span class="pending-count-badge" id="pendingCount" style="display:none;">0</span>
+                </div>
+                <div class="card-body account-card-body">
+                    <p class="account-card-desc">Manage new instructor account requests awaiting approval.</p>
                     <button class="btn btn-success" onclick="openPendingModal()"><i class="fas fa-hourglass-half"></i> View Pending Accounts</button>
                 </div>
             </div>
-            <div class="card" style="margin-top:20px;border-color:#dc2626;">
-                <div class="card-header" style="background:linear-gradient(135deg,#dc2626,#b91c1c);"><h3><i class="fas fa-exclamation-triangle"></i> DANGER ZONE</h3></div>
-                <div class="card-body">
-                    <p style="color:#888;font-size:12px;margin-bottom:12px;">Permanently delete all submitted ratings. This action <strong>cannot</strong> be undone.</p>
+
+            <div class="card account-card account-card-danger">
+                <div class="card-header account-card-header-danger">
+                    <h3><i class="fas fa-exclamation-triangle"></i> DANGER ZONE</h3>
+                </div>
+                <div class="card-body account-card-body">
+                    <p class="account-card-desc">Permanently delete all submitted ratings. This action <strong>cannot</strong> be undone.</p>
                     <button class="btn btn-danger" onclick="handleResetRatings()"><i class="fas fa-trash-alt"></i> Reset All Ratings</button>
                 </div>
             </div>
+
         </div>
 
         <!-- Pending Accounts Modal -->
@@ -405,6 +427,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="assets/js/firebase-init.js?v=2"></script>
     <script src="assets/js/firestore-api.js?v=5"></script>
-    <script src="assets/js/script.js?v=17"></script>
+    <script src="assets/js/script.js?v=18"></script>
 </body>
 </html>
