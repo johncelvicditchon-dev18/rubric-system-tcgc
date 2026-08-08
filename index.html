@@ -295,11 +295,11 @@
                             <tfoot id="criteriaTableFoot">
                                 <tr id="addCriterionRow">
                                     <td>&nbsp;</td>
-                                    <td><input type="text" id="newCriterionName" class="section-edit-input" placeholder="New criterion name" style="width:100%;"></td>
-                                    <td><input type="text" id="newCriterionDesc4" class="section-edit-input" placeholder="Excellent (4) description" style="width:100%;"></td>
-                                    <td><input type="text" id="newCriterionDesc3" class="section-edit-input" placeholder="Good (3) description" style="width:100%;"></td>
-                                    <td><input type="text" id="newCriterionDesc2" class="section-edit-input" placeholder="Fair (2) description" style="width:100%;"></td>
-                                    <td><input type="text" id="newCriterionDesc1" class="section-edit-input" placeholder="Needs Improvement (1) description" style="width:100%;"></td>
+                                    <td><input type="text" id="newCriterionName" class="section-edit-input" placeholder="New criterion name" oninput="autoGrowInput(this)" style="width:100%;"></td>
+                                    <td><input type="text" id="newCriterionDesc4" class="section-edit-input" placeholder="Excellent (4) description" oninput="autoGrowInput(this)" style="width:100%;"></td>
+                                    <td><input type="text" id="newCriterionDesc3" class="section-edit-input" placeholder="Good (3) description" oninput="autoGrowInput(this)" style="width:100%;"></td>
+                                    <td><input type="text" id="newCriterionDesc2" class="section-edit-input" placeholder="Fair (2) description" oninput="autoGrowInput(this)" style="width:100%;"></td>
+                                    <td><input type="text" id="newCriterionDesc1" class="section-edit-input" placeholder="Needs Improvement (1) description" oninput="autoGrowInput(this)" style="width:100%;"></td>
                                     <td>
                                         <button class="btn btn-success" style="padding:4px 10px;font-size:11px;" onclick="addNewCriterion()"><i class="fas fa-plus"></i> Add</button>
                                     </td>
@@ -405,6 +405,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="assets/js/firebase-init.js?v=2"></script>
     <script src="assets/js/firestore-api.js?v=5"></script>
-    <script src="assets/js/script.js?v=15"></script>
+    <script src="assets/js/script.js?v=16"></script>
 </body>
 </html>
