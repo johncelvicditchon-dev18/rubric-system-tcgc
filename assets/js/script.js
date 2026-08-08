@@ -905,75 +905,362 @@ async function exportRaterListPDF() {
     }
 }
 
-// ========== EXPORT PDF (Download) ==========
+// ========== EXPORT PDF (Download — native vector render) ==========
 let pdfBusy = false;
-async function downloadFromBondPaperHTML(html, filename) {
-    if (!window.jspdf || !window.html2canvas) {
-        showToast('PDF library not loaded yet. Check your connection and try again.', 'error');
-        return;
-    }
-    if (pdfBusy) { showToast('A PDF is already being generated. Please wait.', 'error'); return; }
-    pdfBusy = true;
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'legal' });
-    // Render the bond-paper HTML ON-SCREEN but invisibly behind the UI:
-    // html2canvas returns an empty canvas for elements outside the viewport
-    // (the previous off-screen fixed positioning approach produced blank white PDFs).
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'position:fixed;top:0;left:0;z-index:-99999;opacity:0.01;pointer-events:none;';
-    const container = document.createElement('div');
-    container.style.cssText = 'width:1344px;';
-    container.innerHTML = html;
-    wrap.appendChild(container);
-    document.body.appendChild(wrap);
-    try {
-        await document.fonts.ready;
-        const imgs = Array.prototype.slice.call(container.querySelectorAll('img'));
-        await Promise.all(imgs.map(function (img) {
-            return img.complete ? Promise.resolve() : new Promise(function (res) {
-                img.onload = res;
-                img.onerror = res;
-            });
-        }));
-        await doc.html(container, {
-            x: 0,
-            y: 0,
-            width: doc.internal.pageSize.getWidth(),
-            windowWidth: 1344,
-            autoPaging: 'slice',
-            html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' }
-        });
-        doc.save(filename);
-        showToast('PDF downloaded!', 'success');
-    } catch (e) {
-        console.error('PDF download error:', e);
-        showToast('Failed to generate PDF. Try again.', 'error');
-    } finally {
-        if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
-        pdfBusy = false;
-    }
+
+function localDateStamp() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
-function localDateStamp() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+// Loads the logo once and returns { url, w, h } (PNG data URL + natural dims) for embedding (same origin).
+let _logo = null;
+function getLogoURL() {
+    if (_logo) return Promise.resolve(_logo);
+    return new Promise(function (resolve) {
+        var img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function () {
+            try {
+                var cv = document.createElement('canvas');
+                cv.width = img.naturalWidth || 80;
+                cv.height = img.naturalHeight || 80;
+                var ctx = cv.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                _logo = { url: cv.toDataURL('image/png'), w: cv.width, h: cv.height };
+                resolve(_logo);
+            } catch (e) { resolve(null); }
+        };
+        img.onerror = function () { resolve(null); };
+        img.src = 'assets/images/logo-toggle.png';
+    });
+}
+
+// ---------- page geometry (legal landscape, mm) ----------
+const PDF_PAGE_W = 355.6, PDF_PAGE_H = 215.9, PDF_TOP = 12, PDF_BOTTOM = 14, PDF_MARGIN = 14;
+const PDF_CONTENT_W = PDF_PAGE_W - (PDF_MARGIN * 2); // 327.6
+
+function pdfSetDocFonts(doc, size, style) {
+    doc.setFont('helvetica', style || 'normal');
+    doc.setFontSize(size);
+}
+
+// Letterhead: logo left, brand center block, issuance date, double rule. Returns next usable y.
+function drawLetterhead(doc, title, logoURL, today) {
+    if (logoURL && logoURL.url) {
+        var lh = 15.3;
+        var lw = (logoURL.w && logoURL.h) ? (lh * logoURL.w / logoURL.h) : 26;
+        if (lw > 80) { lw = 80; lh = 80 * logoURL.h / logoURL.w; }
+        doc.addImage(logoURL.url, 'PNG', PDF_MARGIN, PDF_TOP - 3, lw, lh);
+    }
+    pdfSetDocFonts(doc, 16, 'bold');
+    doc.setTextColor('#0e5e2e');
+    doc.text(title, PDF_PAGE_W / 2, PDF_TOP, { align: 'center', baseline: 'middle' });
+    pdfSetDocFonts(doc, 8, 'normal');
+    doc.setTextColor('#334155');
+    doc.text('Date of Issuance', PDF_PAGE_W - PDF_MARGIN, PDF_TOP, { align: 'right' });
+    pdfSetDocFonts(doc, 8.5, 'bold');
+    doc.setTextColor('#14202e');
+    doc.text(today, PDF_PAGE_W - PDF_MARGIN, PDF_TOP + 4.5, { align: 'right' });
+    // double rule under the letterhead
+    doc.setDrawColor('#0e5e2e');
+    doc.setLineWidth(0.9);
+    doc.line(PDF_MARGIN, PDF_TOP + 15.5, PDF_PAGE_W - PDF_MARGIN, PDF_TOP + 15.5);
+    doc.setLineWidth(0.3);
+    doc.line(PDF_MARGIN, PDF_TOP + 16.6, PDF_PAGE_W - PDF_MARGIN, PDF_TOP + 16.6);
+    return PDF_TOP + 22;
+}
+
+// Meta bar: items [{label, value}] in equal slots. Returns next usable y.
+function drawMetaBar(doc, items, y) {
+    const h = 17;
+    doc.setFillColor('#f0f7f2');
+    doc.setDrawColor('#cfe3d6');
+    doc.setLineWidth(0.3);
+    doc.roundedRect(PDF_MARGIN, y, PDF_CONTENT_W, h, 1.5, 1.5, 'FD');
+    const slotW = PDF_CONTENT_W / items.length;
+    items.forEach(function (it, i) {
+        const x0 = PDF_MARGIN + (slotW * i) + 3;
+        pdfSetDocFonts(doc, 8, 'normal');
+        doc.setTextColor('#0e5e2e');
+        doc.text(it.label + ':', x0, y + 6, { baseline: 'top' });
+        pdfSetDocFonts(doc, 8.5, 'bold');
+        doc.setTextColor('#14202e');
+        doc.text(String(it.value), x0, y + 11.5, { baseline: 'top' });
+    });
+    return y + h + 5;
+}
+
+// Deterministic vector table with page breaks, repeated headers, zebra and totals row.
+// opts: { zebra, markFn(doc,cx,cy,ci,cell), totalRow }.
+function drawTable(doc, x, y, colWidths, headers, rows, opts) {
+    opts = opts || {};
+    const rowH = 7.2, headH = 8.2;
+    const totalW = colWidths.reduce(function (a, b) { return a + b; }, 0);
+    let cy = y;
+    const cumW = [];
+    let acc = 0;
+    for (let i = 0; i < colWidths.length; i++) { acc += colWidths[i]; cumW.push(acc); }
+    const limitY = PDF_PAGE_H - PDF_BOTTOM;
+
+    const drawHeaderBlock = function () {
+        doc.setFillColor('#0e5e2e');
+        doc.rect(x, cy, totalW, headH, 'F');
+        pdfSetDocFonts(doc, 8, 'bold');
+        doc.setTextColor('#ffffff');
+        let hx = x;
+        headers.forEach(function (h, i) {
+            doc.text(String(h), hx + colWidths[i] / 2, cy + headH / 2, { align: 'center', baseline: 'middle' });
+            hx += colWidths[i];
+        });
+        cy += headH;
+    };
+
+    drawHeaderBlock();
+
+    rows.forEach(function (row, ri) {
+        if (cy + rowH > limitY) {
+            doc.addPage();
+            cy = PDF_TOP;
+            drawHeaderBlock();
+        }
+        if (opts.zebra && (ri % 2 === 1)) {
+            doc.setFillColor('#f3f7f4');
+            doc.rect(x, cy, totalW, rowH, 'F');
+        }
+        // single bordered box per row + vertical cell separators
+        doc.setDrawColor('#b9c6bd');
+        doc.setLineWidth(0.15);
+        doc.rect(x, cy, totalW, rowH, 'S');
+        for (let v = 1; v < colWidths.length; v++) {
+            doc.line(x + cumW[v - 1], cy, x + cumW[v - 1], cy + rowH);
+        }
+        let cx = x;
+        row.forEach(function (cell, ci) {
+            if (ci >= 2 && opts.markFn) {
+                opts.markFn(doc, cx + colWidths[ci] / 2, cy + rowH / 2, ci, cell);
+            } else if (cell !== null && cell !== undefined) {
+                const isLeft = (ci === 0 || ci === opts.leftIdx);
+                pdfSetDocFonts(doc, 7.5, isLeft ? 'bold' : 'normal');
+                doc.setTextColor('#1c2b3a');
+                if (isLeft) {
+                    doc.text(String(cell), cx + 1.5, cy + rowH / 2, { align: 'left', baseline: 'middle' });
+                } else {
+                    doc.text(String(cell), cx + colWidths[ci] / 2, cy + rowH / 2, { align: 'center', baseline: 'middle' });
+                }
+            }
+            cx += colWidths[ci];
+        });
+        cy += rowH;
+    });
+
+    if (opts.totalRow) {
+        if (cy + rowH > limitY) {
+            doc.addPage();
+            cy = PDF_TOP;
+            drawHeaderBlock();
+        }
+        doc.setFillColor('#0e5e2e');
+        doc.rect(x, cy, totalW, rowH, 'F');
+        doc.setDrawColor('#b9c6bd');
+        doc.setLineWidth(0.15);
+        doc.rect(x, cy, totalW, rowH, 'S');
+        let cx2 = x;
+        opts.totalRow.forEach(function (tc, ci) {
+            if (tc !== null && tc !== undefined) {
+                pdfSetDocFonts(doc, 8, 'bold');
+                doc.setTextColor('#ffffff');
+                if (ci === 1) {
+                    doc.text(String(tc), cx2 + 1.5, cy + rowH / 2, { align: 'left', baseline: 'middle' });
+                } else if (ci > 1) {
+                    doc.text(String(tc), cx2 + colWidths[ci] / 2, cy + rowH / 2, { align: 'center', baseline: 'middle' });
+                }
+            }
+            cx2 += colWidths[ci];
+        });
+        cy += rowH;
+    }
+    return cy;
+}
+
+// Checkmark "voted" mark (green) and cross "missed" mark (red).
+function drawMarks(doc, cx, cy) {
+    doc.setDrawColor('#16a34a');
+    doc.setLineWidth(0.6);
+    doc.line(cx - 1.6, cy + 0.6, cx - 0.4, cy + 1.8);
+    doc.line(cx - 0.4, cy + 1.8, cx + 1.8, cy - 1.6);
+}
+function drawMiss(doc, cx, cy) {
+    doc.setDrawColor('#dc2626');
+    doc.setLineWidth(0.5);
+    doc.line(cx - 1.4, cy - 1.4, cx + 1.4, cy + 1.4);
+    doc.line(cx + 1.4, cy - 1.4, cx - 1.4, cy + 1.4);
+}
+
+// Signature blocks: left PREPARED BY (instructor), right NOTED BY.
+function drawSignatures(doc, y, instructor) {
+    const leftCx = PDF_PAGE_W * 0.28;
+    const rightCx = PDF_PAGE_W * 0.72;
+    doc.setDrawColor('#14202e');
+    doc.setLineWidth(0.5);
+    doc.line(leftCx - 11, y, leftCx + 11, y);
+    doc.line(rightCx - 11, y, rightCx + 11, y);
+    pdfSetDocFonts(doc, 8.5, 'bold');
+    doc.setTextColor('#14202e');
+    doc.text(String(instructor || ''), leftCx, y + 3.5, { align: 'center' });
+    pdfSetDocFonts(doc, 8, 'normal');
+    doc.setTextColor('#475569');
+    doc.text('PREPARED BY', leftCx, y + 8.5, { align: 'center' });
+    doc.text('NOTED BY', rightCx, y + 8.5, { align: 'center' });
+}
+
+function drawFooter(doc, y, text) {
+    pdfSetDocFonts(doc, 7.5, 'normal');
+    doc.setTextColor('#64748b');
+    doc.text(text, PDF_PAGE_W / 2, y, { align: 'center' });
+}
+
+// Shared PDF "busy" guard: prevents overlapping exports.
+async function withPdfLock(task) {
+    if (pdfBusy) { showToast('A PDF is already being generated. Please wait.', 'error'); return; }
+    pdfBusy = true;
+    try { await task(); } finally { pdfBusy = false; }
+}
+
+async function drawStudentRatingsPDF(doc, ratings) {
+    const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const logo = await getLogoURL();
+
+    let y = drawLetterhead(doc, 'STUDENT RATING RECORDS', logo, today);
+    y = drawMetaBar(doc, [
+        { label: 'INSTRUCTOR', value: currentInstructor },
+        { label: 'SECTION', value: currentSection || 'N/A' },
+        { label: 'MAX SCORE', value: currentMaxScore + ' pts' },
+        { label: 'RATERS', value: (ratings || []).length }
+    ], y);
+
+    const groupW = (PDF_CONTENT_W - 83) / 10;
+    const colWidths = [8, 75];
+    for (let g = 1; g <= 10; g++) colWidths.push(groupW);
+    const headers = ['#', 'NAME OF THE RATER'];
+    for (let g = 1; g <= 10; g++) headers.push('GROUP ' + g);
+
+    const colTotals = {};
+    for (let g = 1; g <= 10; g++) colTotals['GROUP ' + g] = 0;
+    const rows = (ratings || []).map(function (r, idx) {
+        const row = [idx + 1, r.name];
+        for (let g = 1; g <= 10; g++) {
+            const gn = 'GROUP ' + g;
+            const score = r[gn];
+            if (score !== null && score !== undefined) {
+                row.push(score + '/' + criteriaDenominator());
+                colTotals[gn] += score;
+            } else {
+                row.push(null);
+            }
+        }
+        return row;
+    });
+    const totalRow = [null, 'TOTAL SCORE: ' + currentMaxScore];
+    for (let g = 1; g <= 10; g++) totalRow.push(colTotals['GROUP ' + g] + '/' + currentMaxScore);
+
+    y = drawTable(doc, PDF_MARGIN, y, colWidths, headers, rows, { zebra: true, leftIdx: 1, totalRow: totalRow });
+
+    if (y + 22 > PDF_PAGE_H - PDF_BOTTOM) { doc.addPage(); y = PDF_TOP; }
+
+    const sigY = y + 12;
+    drawSignatures(doc, sigY, currentInstructor);
+    drawFooter(doc, sigY + 15, 'This document was generated automatically by the Rubric System on ' + today + '.');
+}
+
+async function drawRaterListPDF(doc, raters) {
+    const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const logo = await getLogoURL();
+
+    let y = drawLetterhead(doc, 'RATER LIST', logo, today);
+    y = drawMetaBar(doc, [
+        { label: 'INSTRUCTOR', value: currentInstructor },
+        { label: 'SECTION', value: currentSection || 'N/A' },
+        { label: 'MEMBERS', value: (raters || []).length },
+        { label: 'STATUS', value: '10 GROUPS' }
+    ], y);
+
+    const groupW = (PDF_CONTENT_W - 83) / 10;
+    const colWidths = [8, 75];
+    for (let g = 1; g <= 10; g++) colWidths.push(groupW);
+    const headers = ['#', 'NAME OF THE RATER'];
+    for (let g = 1; g <= 10; g++) headers.push('GROUP ' + g);
+
+    const rows = (raters || []).map(function (r, idx) {
+        const row = [idx + 1, r.name];
+        for (let g = 1; g <= 10; g++) row.push(r);
+        return row;
+    });
+
+    y = drawTable(doc, PDF_MARGIN, y, colWidths, headers, rows, {
+        zebra: true,
+        leftIdx: 1,
+        markFn: function (doc, cx, cy, ci, cell) {
+            const g = ci - 1;
+            if (cell && cell['GROUP ' + g]) drawMarks(doc, cx, cy);
+            else drawMiss(doc, cx, cy);
+        }
+    });
+
+    if (y + 22 > PDF_PAGE_H - PDF_BOTTOM) { doc.addPage(); y = PDF_TOP; }
+
+    // table note with tiny sample marks
+    const noteY = y + 4;
+    pdfSetDocFonts(doc, 8.5, 'normal');
+    doc.setTextColor('#475569');
+    doc.text('RATED:', PDF_MARGIN + 2, noteY, { baseline: 'middle' });
+    drawMarks(doc, PDF_MARGIN + 18, noteY);
+    doc.text('MISSED:', PDF_MARGIN + 30, noteY, { baseline: 'middle' });
+    drawMiss(doc, PDF_MARGIN + 48, noteY);
+
+    const sigY = y + 13;
+    drawSignatures(doc, sigY, currentInstructor);
+    drawFooter(doc, sigY + 15, 'This document was generated automatically by the Rubric System on ' + today + '.');
+}
 
 async function downloadStudentPDF() {
     if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
-    await loadLiveCriteria();
-    const data = await Api.getStudentRatingsTable(currentInstructor, currentSection);
-    if (data.status !== 'success') { showToast('Error loading ratings', 'error'); return; }
-    const html = buildStudentRatingsHTML(data.ratings || []);
-    const date = localDateStamp();
-    await downloadFromBondPaperHTML(html, 'Student_Ratings_' + date + '.pdf');
+    if (!window.jspdf) { showToast('PDF library not loaded yet. Check your connection and try again.', 'error'); return; }
+    const { jsPDF } = window.jspdf;
+    await withPdfLock(async function () {
+        try {
+            await loadLiveCriteria();
+            const data = await Api.getStudentRatingsTable(currentInstructor, currentSection);
+            if (data.status !== 'success') { showToast('Error loading ratings', 'error'); return; }
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'legal' });
+            await drawStudentRatingsPDF(doc, data.ratings || []);
+            doc.save('Student_Ratings_' + localDateStamp() + '.pdf');
+            showToast('PDF downloaded!', 'success');
+        } catch (e) {
+            console.error('PDF download error:', e);
+            showToast('Failed to generate PDF. Try again.', 'error');
+        }
+    });
 }
 
 async function downloadRaterListPDF() {
     if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
-    await loadLiveCriteria();
-    const data = await Api.getRaterList(currentInstructor, currentSection);
-    if (data.status !== 'success') { showToast('Error loading rater list', 'error'); return; }
-    const html = buildRaterListHTML(data.raters || []);
-    const date = localDateStamp();
-    await downloadFromBondPaperHTML(html, 'Rater_List_' + date + '.pdf');
+    if (!window.jspdf) { showToast('PDF library not loaded yet. Check your connection and try again.', 'error'); return; }
+    const { jsPDF } = window.jspdf;
+    await withPdfLock(async function () {
+        try {
+            await loadLiveCriteria();
+            const data = await Api.getRaterList(currentInstructor, currentSection);
+            if (data.status !== 'success') { showToast('Error loading rater list', 'error'); return; }
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'legal' });
+            await drawRaterListPDF(doc, data.raters || []);
+            doc.save('Rater_List_' + localDateStamp() + '.pdf');
+            showToast('PDF downloaded!', 'success');
+        } catch (e) {
+            console.error('PDF download error:', e);
+            showToast('Failed to generate PDF. Try again.', 'error');
+        }
+    });
 }
 
 // ========== STUDENT DETAIL MODAL ==========
