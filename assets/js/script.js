@@ -906,11 +906,14 @@ async function exportRaterListPDF() {
 }
 
 // ========== EXPORT PDF (Download) ==========
+let pdfBusy = false;
 async function downloadFromBondPaperHTML(html, filename) {
     if (!window.jspdf || !window.html2canvas) {
         showToast('PDF library not loaded yet. Check your connection and try again.', 'error');
         return;
     }
+    if (pdfBusy) { showToast('A PDF is already being generated. Please wait.', 'error'); return; }
+    pdfBusy = true;
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'legal' });
     const container = document.createElement('div');
@@ -924,7 +927,7 @@ async function downloadFromBondPaperHTML(html, filename) {
             y: 0,
             width: doc.internal.pageSize.getWidth(),
             windowWidth: 1344,
-            autoPaging: false,
+            autoPaging: 'slice',
             html2canvas: { scale: 2, useCORS: true, logging: false }
         });
         doc.save(filename);
@@ -933,9 +936,12 @@ async function downloadFromBondPaperHTML(html, filename) {
         console.error('PDF download error:', e);
         showToast('Failed to generate PDF. Try again.', 'error');
     } finally {
+        pdfBusy = false;
         if (container.parentNode) container.parentNode.removeChild(container);
     }
 }
+
+function localDateStamp() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 
 async function downloadStudentPDF() {
     if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
@@ -943,7 +949,7 @@ async function downloadStudentPDF() {
     const data = await Api.getStudentRatingsTable(currentInstructor, currentSection);
     if (data.status !== 'success') { showToast('Error loading ratings', 'error'); return; }
     const html = buildStudentRatingsHTML(data.ratings || []);
-    const date = new Date().toISOString().slice(0, 10);
+    const date = localDateStamp();
     await downloadFromBondPaperHTML(html, 'Student_Ratings_' + date + '.pdf');
 }
 
@@ -953,7 +959,7 @@ async function downloadRaterListPDF() {
     const data = await Api.getRaterList(currentInstructor, currentSection);
     if (data.status !== 'success') { showToast('Error loading rater list', 'error'); return; }
     const html = buildRaterListHTML(data.raters || []);
-    const date = new Date().toISOString().slice(0, 10);
+    const date = localDateStamp();
     await downloadFromBondPaperHTML(html, 'Rater_List_' + date + '.pdf');
 }
 
