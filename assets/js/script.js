@@ -327,8 +327,23 @@ async function showInstructorDashboard() {
     document.getElementById('accountName').textContent = currentUserName;
     document.getElementById('accountUsernameView').textContent = sessionStorage.getItem('accountUsername') || '';
     document.getElementById('dropdownUserName').textContent = currentUserName;
+
+    // Profile avatar initials
+    const avatar = document.getElementById('profileAvatar');
+    if (avatar && currentUserName) {
+        const parts = currentUserName.trim().split(/\s+/);
+        const initials = parts.length >= 2
+            ? (parts[0][0] + parts[parts.length - 1][0])
+            : currentUserName.substring(0, 2);
+        avatar.textContent = initials.toUpperCase();
+    }
+    // Mirror name in detail grid
+    const nameVal = document.getElementById('accountNameValue');
+    if (nameVal && currentUserName) nameVal.textContent = currentUserName;
+
     await restoreSectionState();
     showSection('studentList', document.querySelector('.nav-link[data-section="studentList"]'), { preventDefault: () => {}, stopPropagation: () => {} });
+    loadPendingCount(); // fire-and-forget
 }
 
 // ========== SIDEBAR TOGGLE ==========
@@ -1419,6 +1434,22 @@ async function loadPendingAccounts() {
     }
 }
 
+async function loadPendingCount() {
+    try {
+        const data = await Api.getPendingAccounts();
+        const badge = document.getElementById('pendingCount');
+        if (data.status === 'success' && data.accounts && data.accounts.length > 0) {
+            badge.textContent = data.accounts.length;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    } catch (e) {
+        const badge = document.getElementById('pendingCount');
+        if (badge) badge.style.display = 'none';
+    }
+}
+
 async function approveAccount(id) {
     try {
         const data = await Api.approveAccount(id);
@@ -1592,7 +1623,7 @@ async function saveEditUsername() {
 
 // ========== INLINE EDIT: PASSWORD ==========
 function startEditPassword() {
-    const td = document.querySelector('#passwordRow td:nth-child(2)');
+    const td = document.querySelector('#passwordRow .profile-detail-value');
     td.innerHTML = `<div class="inline-edit-group">
         <input type="text" id="editPasswordInput" class="inline-edit-input" placeholder="New password" />
         <button class="btn-inline-save" onclick="saveEditPassword()"><i class="fas fa-check"></i></button>
@@ -1602,7 +1633,7 @@ function startEditPassword() {
 }
 
 function cancelEditPassword() {
-    const td = document.querySelector('#passwordRow td:nth-child(2)');
+    const td = document.querySelector('#passwordRow .profile-detail-value');
     passwordVisible = false;
     td.innerHTML = `<div class="password-field">
         <span id="accountPassword" class="password-hidden">********</span>

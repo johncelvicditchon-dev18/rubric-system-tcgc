@@ -1191,6 +1191,36 @@ body {
 .change-password-form { max-width: 400px; }
 .change-password-form .btn-submit { max-width: 250px; }
 
+/* ========== ACCOUNT PROFILE (admin) ========== */
+.profile-hero { background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); overflow: hidden; border: 1px solid var(--neutral-100); margin-bottom: 20px; transition: all var(--transition); }
+.profile-hero:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.profile-hero-header { background: linear-gradient(135deg, var(--green-800), var(--green-600)); padding: 28px 32px; display: flex; align-items: center; gap: 20px; }
+.profile-avatar-circle { width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,0.18); border: 3px solid rgba(255,255,255,0.35); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 28px; color: white; letter-spacing: 2px; flex-shrink: 0; }
+.profile-hero-text { display: flex; flex-direction: column; gap: 6px; }
+.profile-name-display { color: white; font-family: var(--font-display); font-size: 26px; letter-spacing: 2px; margin: 0; }
+.profile-role-pill { display: inline-block; background: rgba(255,255,255,0.18); color: white; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; padding: 3px 12px; border-radius: var(--radius-full); width: fit-content; }
+.profile-status-pill { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 3px 12px; border-radius: var(--radius-full); width: fit-content; }
+.status-approved { background: var(--green-100); color: var(--green-700); }
+.profile-details-grid { padding: 8px 0; }
+.profile-detail-row { display: grid; grid-template-columns: 180px 1fr auto; align-items: center; padding: 14px 28px; border-bottom: 1px solid var(--neutral-100); gap: 12px; }
+.profile-detail-row:last-child { border-bottom: none; }
+.profile-detail-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--neutral-600); }
+.profile-detail-label i { margin-right: 8px; width: 18px; text-align: center; color: var(--green-700); }
+.profile-detail-value { font-size: 14px; font-weight: 600; color: var(--neutral-800); display: flex; align-items: center; gap: 10px; }
+.profile-edit-btn { background: none; border: 1px solid transparent; border-radius: var(--radius-sm); padding: 6px 10px; cursor: pointer; color: var(--neutral-500); font-size: 13px; transition: all var(--transition); min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center; }
+.profile-edit-btn:hover { background: var(--green-50); color: var(--green-700); border-color: var(--green-200); }
+.profile-edit-btn:focus-visible { outline: 2px solid var(--green-500); outline-offset: 2px; }
+.btn-toggle-password:focus-visible { outline: 2px solid var(--green-500); outline-offset: 2px; }
+.account-card { margin-top: 20px; transition: all var(--transition); }
+.account-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.account-card-header-danger { background: white; border-bottom: 2px solid var(--red-100); }
+.account-card-header-danger h3 { color: var(--red-600); font-size: 20px; }
+.account-card-header-danger h3 i { color: var(--red-600); }
+.account-card-danger { border-left: 4px solid var(--red-600); }
+.account-card-desc { color: var(--neutral-600); font-size: 13px; margin-bottom: 14px; line-height: 1.5; }
+.account-card-desc strong { color: var(--red-600); }
+.pending-count-badge { background: var(--amber-500); color: white; font-size: 11px; font-weight: 800; padding: 2px 10px; border-radius: var(--radius-full); min-width: 24px; text-align: center; }
+
 /* Student Table */
 .table-container {
   overflow-x: auto;
@@ -2080,6 +2110,16 @@ body {
   .btn-back { padding: 8px 14px; font-size: 12px; }
   /* RUBRIC MOBILE BUG FIX: override rubrics-container at ≤768px */
   .rubrics-container { min-width: 0; width: 100%; }
+
+  .profile-hero-header { flex-direction: column; text-align: center; padding: 24px 20px; }
+  .profile-avatar-circle { width: 64px; height: 64px; font-size: 24px; }
+  .profile-hero-text { align-items: center; }
+  .profile-name-display { font-size: 22px; }
+  .profile-detail-row { grid-template-columns: 140px 1fr auto; padding: 12px 16px; }
+  .profile-detail-label { font-size: 10px; }
+  .profile-detail-value { font-size: 13px; }
+  .profile-edit-btn { min-height: 38px; }
+  .account-card-desc { font-size: 12px; }
 }
 
 @media (max-width: 480px) {
@@ -2273,6 +2313,15 @@ body {
     max-height: calc(100vh - 32px);
     overflow-y: auto;
   }
+
+  .profile-hero-header { padding: 20px 16px; }
+  .profile-name-display { font-size: 20px; }
+  .profile-detail-row { grid-template-columns: 1fr; gap: 4px; padding: 10px 12px; position: relative; }
+  .profile-detail-row .profile-edit-btn { position: absolute; right: 12px; top: 10px; }
+  .profile-detail-label { font-size: 10px; letter-spacing: 0.5px; }
+  .profile-detail-value { font-size: 12px; }
+  .account-card-body { padding: 12px; }
+  .btn-success, .btn-danger { width: 100%; text-align: center; }
 }
 
 @media (max-width: 375px) {
@@ -2357,6 +2406,11 @@ body {
   .rubrics-table tfoot tr { padding: 6px 10px; }
   .rubrics-table tfoot td.total-score { font-size: 16px; }
   .total-score { font-size: 16px; }
+
+  .profile-avatar-circle { width: 56px; height: 56px; font-size: 20px; }
+  .profile-name-display { font-size: 18px; letter-spacing: 1px; }
+  .profile-role-pill, .profile-status-pill { font-size: 9px; padding: 2px 10px; }
+  .profile-detail-row { padding: 8px 10px; }
 }
 
 /* ========== DEV FAB BUTTON ========== */
