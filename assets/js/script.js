@@ -916,19 +916,32 @@ async function downloadFromBondPaperHTML(html, filename) {
     pdfBusy = true;
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'legal' });
+    // Render the bond-paper HTML ON-SCREEN but invisibly behind the UI:
+    // html2canvas returns an empty canvas for elements outside the viewport
+    // (the previous off-screen fixed positioning approach produced blank white PDFs).
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;top:0;left:0;z-index:-99999;opacity:0.01;pointer-events:none;';
     const container = document.createElement('div');
-    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:1344px;'; // legal landscape @96dpi = 14in x 8.5in
+    container.style.cssText = 'width:1344px;';
     container.innerHTML = html;
-    document.body.appendChild(container);
+    wrap.appendChild(container);
+    document.body.appendChild(wrap);
     try {
         await document.fonts.ready;
+        const imgs = Array.prototype.slice.call(container.querySelectorAll('img'));
+        await Promise.all(imgs.map(function (img) {
+            return img.complete ? Promise.resolve() : new Promise(function (res) {
+                img.onload = res;
+                img.onerror = res;
+            });
+        }));
         await doc.html(container, {
             x: 0,
             y: 0,
             width: doc.internal.pageSize.getWidth(),
             windowWidth: 1344,
             autoPaging: 'slice',
-            html2canvas: { scale: 2, useCORS: true, logging: false }
+            html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' }
         });
         doc.save(filename);
         showToast('PDF downloaded!', 'success');
@@ -936,8 +949,8 @@ async function downloadFromBondPaperHTML(html, filename) {
         console.error('PDF download error:', e);
         showToast('Failed to generate PDF. Try again.', 'error');
     } finally {
+        if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
         pdfBusy = false;
-        if (container.parentNode) container.parentNode.removeChild(container);
     }
 }
 
