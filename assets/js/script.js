@@ -991,7 +991,7 @@ function drawMetaBar(doc, items, y) {
     return y + h + 5;
 }
 
-// Deterministic vector table with page breaks, repeated headers, zebra and totals row.
+// Deterministic vector table with page breaks (header drawn once on the first page only), zebra and totals row.
 // opts: { zebra, markFn(doc,cx,cy,ci,cell), totalRow }.
 function drawTable(doc, x, y, colWidths, headers, rows, opts) {
     opts = opts || {};
@@ -1022,7 +1022,6 @@ function drawTable(doc, x, y, colWidths, headers, rows, opts) {
         if (cy + rowH > limitY) {
             doc.addPage();
             cy = PDF_TOP;
-            drawHeaderBlock();
         }
         if (opts.zebra && (ri % 2 === 1)) {
             doc.setFillColor('#f3f7f4');
@@ -1058,7 +1057,6 @@ function drawTable(doc, x, y, colWidths, headers, rows, opts) {
         if (cy + rowH > limitY) {
             doc.addPage();
             cy = PDF_TOP;
-            drawHeaderBlock();
         }
         doc.setFillColor('#0e5e2e');
         doc.rect(x, cy, totalW, rowH, 'F');
