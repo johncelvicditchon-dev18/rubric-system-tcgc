@@ -950,7 +950,7 @@ function drawLetterhead(doc, title, logoURL, today) {
     if (logoURL && logoURL.url) {
         var lh = 15.3;
         var lw = (logoURL.w && logoURL.h) ? (lh * logoURL.w / logoURL.h) : 26;
-        if (lw > 80) lw = 80; // never wider than 80mm
+        if (lw > 80) { lw = 80; lh = 80 * logoURL.h / logoURL.w; }
         doc.addImage(logoURL.url, 'PNG', PDF_MARGIN, PDF_TOP - 3, lw, lh);
     }
     pdfSetDocFonts(doc, 16, 'bold');
@@ -1166,6 +1166,8 @@ async function drawStudentRatingsPDF(doc, ratings) {
 
     y = drawTable(doc, PDF_MARGIN, y, colWidths, headers, rows, { zebra: true, leftIdx: 1, totalRow: totalRow });
 
+    if (y + 22 > PDF_PAGE_H - PDF_BOTTOM) { doc.addPage(); y = PDF_TOP; }
+
     const sigY = y + 12;
     drawSignatures(doc, sigY, currentInstructor);
     drawFooter(doc, sigY + 15, 'This document was generated automatically by the Rubric System on ' + today + '.');
@@ -1205,6 +1207,8 @@ async function drawRaterListPDF(doc, raters) {
         }
     });
 
+    if (y + 22 > PDF_PAGE_H - PDF_BOTTOM) { doc.addPage(); y = PDF_TOP; }
+
     // table note with tiny sample marks
     const noteY = y + 4;
     pdfSetDocFonts(doc, 8.5, 'normal');
@@ -1224,13 +1228,18 @@ async function downloadStudentPDF() {
     if (!window.jspdf) { showToast('PDF library not loaded yet. Check your connection and try again.', 'error'); return; }
     const { jsPDF } = window.jspdf;
     await withPdfLock(async function () {
-        await loadLiveCriteria();
-        const data = await Api.getStudentRatingsTable(currentInstructor, currentSection);
-        if (data.status !== 'success') { showToast('Error loading ratings', 'error'); return; }
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'legal' });
-        await drawStudentRatingsPDF(doc, data.ratings || []);
-        doc.save('Student_Ratings_' + localDateStamp() + '.pdf');
-        showToast('PDF downloaded!', 'success');
+        try {
+            await loadLiveCriteria();
+            const data = await Api.getStudentRatingsTable(currentInstructor, currentSection);
+            if (data.status !== 'success') { showToast('Error loading ratings', 'error'); return; }
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'legal' });
+            await drawStudentRatingsPDF(doc, data.ratings || []);
+            doc.save('Student_Ratings_' + localDateStamp() + '.pdf');
+            showToast('PDF downloaded!', 'success');
+        } catch (e) {
+            console.error('PDF download error:', e);
+            showToast('Failed to generate PDF. Try again.', 'error');
+        }
     });
 }
 
@@ -1239,13 +1248,18 @@ async function downloadRaterListPDF() {
     if (!window.jspdf) { showToast('PDF library not loaded yet. Check your connection and try again.', 'error'); return; }
     const { jsPDF } = window.jspdf;
     await withPdfLock(async function () {
-        await loadLiveCriteria();
-        const data = await Api.getRaterList(currentInstructor, currentSection);
-        if (data.status !== 'success') { showToast('Error loading rater list', 'error'); return; }
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'legal' });
-        await drawRaterListPDF(doc, data.raters || []);
-        doc.save('Rater_List_' + localDateStamp() + '.pdf');
-        showToast('PDF downloaded!', 'success');
+        try {
+            await loadLiveCriteria();
+            const data = await Api.getRaterList(currentInstructor, currentSection);
+            if (data.status !== 'success') { showToast('Error loading rater list', 'error'); return; }
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'legal' });
+            await drawRaterListPDF(doc, data.raters || []);
+            doc.save('Rater_List_' + localDateStamp() + '.pdf');
+            showToast('PDF downloaded!', 'success');
+        } catch (e) {
+            console.error('PDF download error:', e);
+            showToast('Failed to generate PDF. Try again.', 'error');
+        }
     });
 }
 
