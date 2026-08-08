@@ -2478,7 +2478,8 @@ body {
   white-space: nowrap;
 }
 .btn-pdf:hover { background: #b91c1c; transform: translateY(-1px); }
+.btn-pdf.btn-download { background: var(--green-700, #115c2e); border-color: var(--green-700, #115c2e); }
 .btn-pdf i { font-size: 14px; }
-.card-header .btn-pdf { margin-left: 12px; }
+.card-header .btn-pdf:first-child { margin-left: 12px; }
 
 
