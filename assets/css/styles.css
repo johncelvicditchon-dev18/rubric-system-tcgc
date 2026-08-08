@@ -2319,9 +2319,9 @@ body {
   .profile-detail-row { grid-template-columns: 1fr; gap: 4px; padding: 10px 12px; position: relative; }
   .profile-detail-row .profile-edit-btn { position: absolute; right: 12px; top: 10px; }
   .profile-detail-label { font-size: 10px; letter-spacing: 0.5px; }
-  .profile-detail-value { font-size: 12px; }
+  .profile-detail-value { font-size: 12px; padding-right: 48px; }
   .account-card-body { padding: 12px; }
-  .btn-success, .btn-danger { width: 100%; text-align: center; }
+  .account-card .btn-success, .account-card .btn-danger { width: 100%; text-align: center; }
 }
 
 @media (max-width: 375px) {

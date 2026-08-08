@@ -1439,10 +1439,12 @@ async function loadPendingCount() {
         const data = await Api.getPendingAccounts();
         const badge = document.getElementById('pendingCount');
         if (data.status === 'success' && data.accounts && data.accounts.length > 0) {
-            badge.textContent = data.accounts.length;
-            badge.style.display = 'inline-block';
+            if (badge) {
+                badge.textContent = data.accounts.length;
+                badge.style.display = 'inline-block';
+            }
         } else {
-            badge.style.display = 'none';
+            if (badge) badge.style.display = 'none';
         }
     } catch (e) {
         const badge = document.getElementById('pendingCount');
@@ -1456,6 +1458,7 @@ async function approveAccount(id) {
         if (data.status === 'success') {
             showToast(data.message, 'success');
             loadPendingAccounts();
+            loadPendingCount();
         } else {
             showToast(data.message, 'error');
         }
@@ -1471,6 +1474,7 @@ async function deletePendingAccount(id) {
         if (data.status === 'success') {
             showToast(data.message, 'success');
             loadPendingAccounts();
+            loadPendingCount();
         } else {
             showToast(data.message, 'error');
         }
@@ -1637,7 +1641,7 @@ function cancelEditPassword() {
     passwordVisible = false;
     td.innerHTML = `<div class="password-field">
         <span id="accountPassword" class="password-hidden">********</span>
-        <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility()"><i class="fas fa-eye"></i></button>
+        <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility()" aria-label="Toggle password visibility"><i class="fas fa-eye"></i></button>
     </div>`;
 }
 
