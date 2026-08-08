@@ -668,13 +668,7 @@ function escHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-async function exportStudentPDF() {
-    if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
-    await loadLiveCriteria();
-    const data = await Api.getStudentRatingsTable(currentInstructor, currentSection);
-    if (data.status !== 'success') { showToast('Error loading ratings', 'error'); return; }
-    const ratings = data.ratings || [];
-
+function buildStudentRatingsHTML(ratings) {
     const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Student Ratings</title>
     <style>
@@ -754,6 +748,17 @@ async function exportStudentPDF() {
     </div>`;
     html += '<div class="doc-footer">This document was generated automatically by the Rubric System on ' + escHtml(today) + '.</div>';
     html += '</body></html>';
+    return html;
+}
+
+async function exportStudentPDF() {
+    if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
+    await loadLiveCriteria();
+    const data = await Api.getStudentRatingsTable(currentInstructor, currentSection);
+    if (data.status !== 'success') { showToast('Error loading ratings', 'error'); return; }
+    const ratings = data.ratings || [];
+
+    const html = buildStudentRatingsHTML(ratings);
 
     const frame = document.createElement('iframe');
     frame.setAttribute('aria-hidden', 'true');
@@ -785,13 +790,7 @@ async function exportStudentPDF() {
     }
 }
 
-async function exportRaterListPDF() {
-    if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
-    await loadLiveCriteria();
-    const data = await Api.getRaterList(currentInstructor, currentSection);
-    if (data.status !== 'success') { showToast('Error loading rater list', 'error'); return; }
-    const raters = data.raters || [];
-
+function buildRaterListHTML(raters) {
     const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Rater List</title>
     <style>
@@ -864,6 +863,17 @@ async function exportRaterListPDF() {
     </div>`;
     html += '<div class="doc-footer">This document was generated automatically by the Rubric System on ' + escHtml(today) + '.</div>';
     html += '</body></html>';
+    return html;
+}
+
+async function exportRaterListPDF() {
+    if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
+    await loadLiveCriteria();
+    const data = await Api.getRaterList(currentInstructor, currentSection);
+    if (data.status !== 'success') { showToast('Error loading rater list', 'error'); return; }
+    const raters = data.raters || [];
+
+    const html = buildRaterListHTML(raters);
 
     const frame = document.createElement('iframe');
     frame.setAttribute('aria-hidden', 'true');
@@ -893,6 +903,58 @@ async function exportRaterListPDF() {
     } else {
         setTimeout(doPrint, 250);
     }
+}
+
+// ========== EXPORT PDF (Download) ==========
+async function downloadFromBondPaperHTML(html, filename) {
+    if (!window.jspdf || !window.html2canvas) {
+        showToast('PDF library not loaded yet. Check your connection and try again.', 'error');
+        return;
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'legal' });
+    const container = document.createElement('div');
+    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:1344px;'; // legal landscape @96dpi = 14in x 8.5in
+    container.innerHTML = html;
+    document.body.appendChild(container);
+    try {
+        await document.fonts.ready;
+        await doc.html(container, {
+            x: 0,
+            y: 0,
+            width: doc.internal.pageSize.getWidth(),
+            windowWidth: 1344,
+            autoPaging: false,
+            html2canvas: { scale: 2, useCORS: true, logging: false }
+        });
+        doc.save(filename);
+        showToast('PDF downloaded!', 'success');
+    } catch (e) {
+        console.error('PDF download error:', e);
+        showToast('Failed to generate PDF. Try again.', 'error');
+    } finally {
+        if (container.parentNode) container.parentNode.removeChild(container);
+    }
+}
+
+async function downloadStudentPDF() {
+    if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
+    await loadLiveCriteria();
+    const data = await Api.getStudentRatingsTable(currentInstructor, currentSection);
+    if (data.status !== 'success') { showToast('Error loading ratings', 'error'); return; }
+    const html = buildStudentRatingsHTML(data.ratings || []);
+    const date = new Date().toISOString().slice(0, 10);
+    await downloadFromBondPaperHTML(html, 'Student_Ratings_' + date + '.pdf');
+}
+
+async function downloadRaterListPDF() {
+    if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
+    await loadLiveCriteria();
+    const data = await Api.getRaterList(currentInstructor, currentSection);
+    if (data.status !== 'success') { showToast('Error loading rater list', 'error'); return; }
+    const html = buildRaterListHTML(data.raters || []);
+    const date = new Date().toISOString().slice(0, 10);
+    await downloadFromBondPaperHTML(html, 'Rater_List_' + date + '.pdf');
 }
 
 // ========== STUDENT DETAIL MODAL ==========
