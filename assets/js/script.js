@@ -1687,7 +1687,7 @@ function renderAdminGroupResults(groups) {
 
     let html = '';
     GROUPS.forEach(gn => {
-        const grp = groups[gn] || { member1_name: '', member2_name: '', member3_name: '', member4_name: '', member5_name: '', is_closed: 0, total_score: 0, num_ratings: 0 };
+        const grp = groups[gn] || { member1_name: '', member2_name: '', member3_name: '', member4_name: '', member5_name: '', member6_name: '', is_closed: 0, total_score: 0, num_ratings: 0 };
 
         const totalScore = grp.total_score;
         const numRatings = grp.num_ratings;
@@ -1714,6 +1714,7 @@ function renderAdminGroupResults(groups) {
                     <input type="text" class="admin-member-input" id="member3_${gn.replace(' ', '_')}" placeholder="Member 3" value="${grp.member3_name}" style="text-transform: uppercase;" oninput="debouncedSaveMembers('${gn}')">
                     <input type="text" class="admin-member-input" id="member4_${gn.replace(' ', '_')}" placeholder="Member 4" value="${grp.member4_name}" style="text-transform: uppercase;" oninput="debouncedSaveMembers('${gn}')">
                     <input type="text" class="admin-member-input" id="member5_${gn.replace(' ', '_')}" placeholder="Member 5" value="${grp.member5_name}" style="text-transform: uppercase;" oninput="debouncedSaveMembers('${gn}')">
+                    <input type="text" class="admin-member-input" id="member6_${gn.replace(' ', '_')}" placeholder="Member 6" value="${grp.member6_name}" style="text-transform: uppercase;" oninput="debouncedSaveMembers('${gn}')">
                 </div>
             </div>
         </div>`;
@@ -1736,9 +1737,10 @@ const debouncedSaveMembers = debounce(async (groupName) => {
     const m3 = document.getElementById(`member3_${key}`).value.trim();
     const m4 = document.getElementById(`member4_${key}`).value.trim();
     const m5 = document.getElementById(`member5_${key}`).value.trim();
+    const m6 = document.getElementById(`member6_${key}`).value.trim();
 
     try {
-        const data = await Api.saveGroupMembers(currentInstructor, groupName, currentSection, m1, m2, m3, m4, m5);
+        const data = await Api.saveGroupMembers(currentInstructor, groupName, currentSection, m1, m2, m3, m4, m5, m6);
 
         if (data.status === 'success') {
             showToast('Members saved for ' + groupName, 'success');
