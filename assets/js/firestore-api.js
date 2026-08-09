@@ -6,7 +6,7 @@ const Api = (() => {
     const COLL_CRITERIA = 'rubric_criteria';
 
     const GROUP_NAMES = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
-    const MEMBER_FIELDS = ['member1_name','member2_name','member3_name','member4_name','member5_name'];
+    const MEMBER_FIELDS = ['member1_name','member2_name','member3_name','member4_name','member5_name','member6_name'];
     // LEGACY fallback keys — kept ONLY for backward compatibility when reading old
     // rating docs. The PRIMARY source of criteria is the `rubric_criteria` collection
     // read through getCriteria().
@@ -150,6 +150,7 @@ const Api = (() => {
             member3_name: '',
             member4_name: '',
             member5_name: '',
+            member6_name: '',
             is_closed: 0
         };
     }
@@ -390,6 +391,7 @@ const Api = (() => {
                     member3_name: g.member3_name || '',
                     member4_name: g.member4_name || '',
                     member5_name: g.member5_name || '',
+                    member6_name: g.member6_name || '',
                     is_closed: g.is_closed ? 1 : 0,
                     total_score: sum.total,
                     num_ratings: sum.count
@@ -414,9 +416,9 @@ const Api = (() => {
             return { status: 'success', groups: status };
         },
 
-        async saveGroupMembers(instructor, group_name, section, m1, m2, m3, m4, m5) {
+        async saveGroupMembers(instructor, group_name, section, m1, m2, m3, m4, m5, m6) {
             if (!instructor || !group_name) return { status: 'error', message: 'instructor and group_name required' };
-            const members = [m1, m2, m3, m4, m5].map(m => String(m || '').trim().toUpperCase());
+            const members = [m1, m2, m3, m4, m5, m6].map(m => String(m || '').trim().toUpperCase());
             const docs = await queryWhere(COLL_GROUPS, [['instructor', '==', instructor], ['group_name', '==', group_name]]);
             const existing = pickGroupDoc(docs, instructor, section, group_name);
             if (existing) {
@@ -426,10 +428,11 @@ const Api = (() => {
                     member2_name: members[1],
                     member3_name: members[2],
                     member4_name: members[3],
-                    member5_name: members[4]
+                    member5_name: members[4],
+                    member6_name: members[5]
                 };
                 await db.collection(COLL_GROUPS).doc(existing.id).update(upd);
-                for (let i = 0; i < 5; i++) {
+                for (let i = 0; i < 6; i++) {
                     const o = oldNames[i], n = members[i];
                     if (o && n && o !== n) {
                         await renameRaterRatings(o, n, instructor);
@@ -442,6 +445,7 @@ const Api = (() => {
                 data.member3_name = members[2];
                 data.member4_name = members[3];
                 data.member5_name = members[4];
+                data.member6_name = members[5];
                 await db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, group_name)).set(data);
             }
             return { status: 'success', message: 'Members saved successfully' };
