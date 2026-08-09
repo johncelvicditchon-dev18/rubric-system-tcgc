@@ -837,7 +837,7 @@ function buildRaterListHTML(raters) {
     html += `<div class="meta">
         <span><b>INSTRUCTOR:</b> ${escHtml(currentInstructor)}</span>
         <span><b>SECTION:</b> ${escHtml(currentSection || 'N/A')}</span>
-        <span><b>MEMBERS:</b> ${raters.length}</span>
+        <span><b>STUDENTS:</b> ${raters.length}</span>
     </div>`;
     html += '<table><thead><tr><th style="width:26px;">#</th><th style="text-align:left;">NAME OF THE RATER</th>';
     for (let i = 1; i <= 10; i++) html += `<th>GROUP ${i}</th>`;
@@ -1184,7 +1184,7 @@ async function drawRaterListPDF(doc, raters) {
     y = drawMetaBar(doc, [
         { label: 'INSTRUCTOR', value: currentInstructor },
         { label: 'SECTION', value: currentSection || 'N/A' },
-        { label: 'MEMBERS', value: (raters || []).length },
+        { label: 'STUDENTS', value: (raters || []).length },
         { label: 'STATUS', value: '10 GROUPS' }
     ], y);
 
