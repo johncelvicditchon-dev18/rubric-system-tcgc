@@ -746,7 +746,7 @@ function buildStudentRatingsHTML(ratings) {
         <div class="sig-block"><span class="sig-line">${escHtml(currentInstructor)}</span><div class="sig-label">PREPARED BY</div></div>
         <div class="sig-block"><span class="sig-line">&nbsp;</span><div class="sig-label">NOTED BY</div></div>
     </div>`;
-    html += '<div class="doc-footer">This document was generated automatically by the Rubric System on ' + escHtml(today) + '.</div>';
+    html += '<div class="doc-footer">' + SYSTEM_URL + '</div>';
     html += '</body></html>';
     return html;
 }
@@ -861,7 +861,7 @@ function buildRaterListHTML(raters) {
         <div class="sig-block"><span class="sig-line">${escHtml(currentInstructor)}</span><div class="sig-label">PREPARED BY</div></div>
         <div class="sig-block"><span class="sig-line">&nbsp;</span><div class="sig-label">NOTED BY</div></div>
     </div>`;
-    html += '<div class="doc-footer">This document was generated automatically by the Rubric System on ' + escHtml(today) + '.</div>';
+    html += '<div class="doc-footer">' + SYSTEM_URL + '</div>';
     html += '</body></html>';
     return html;
 }
@@ -939,6 +939,7 @@ function getLogoURL() {
 // ---------- page geometry (legal landscape, mm) ----------
 const PDF_PAGE_W = 355.6, PDF_PAGE_H = 215.9, PDF_TOP = 12, PDF_BOTTOM = 14, PDF_MARGIN = 14;
 const PDF_CONTENT_W = PDF_PAGE_W - (PDF_MARGIN * 2); // 327.6
+const SYSTEM_URL = 'https://rubric-system-tcgc.vercel.app/';
 
 function pdfSetDocFonts(doc, size, style) {
     doc.setFont('helvetica', style || 'normal');
@@ -1115,7 +1116,11 @@ function drawSignatures(doc, y, instructor) {
 function drawFooter(doc, y, text) {
     pdfSetDocFonts(doc, 7.5, 'normal');
     doc.setTextColor('#64748b');
-    doc.text(text, PDF_PAGE_W / 2, y, { align: 'center' });
+    if (typeof doc.textWithLink === 'function') {
+        doc.textWithLink(text, (PDF_PAGE_W - doc.getTextWidth(text)) / 2, y, { url: text });
+    } else {
+        doc.text(text, (PDF_PAGE_W - doc.getTextWidth(text)) / 2, y);
+    }
 }
 
 // Shared PDF "busy" guard: prevents overlapping exports.
@@ -1168,7 +1173,7 @@ async function drawStudentRatingsPDF(doc, ratings) {
 
     const sigY = y + 12;
     drawSignatures(doc, sigY, currentInstructor);
-    drawFooter(doc, sigY + 15, 'This document was generated automatically by the Rubric System on ' + today + '.');
+    drawFooter(doc, sigY + 15, SYSTEM_URL);
 }
 
 async function drawRaterListPDF(doc, raters) {
@@ -1218,7 +1223,7 @@ async function drawRaterListPDF(doc, raters) {
 
     const sigY = y + 13;
     drawSignatures(doc, sigY, currentInstructor);
-    drawFooter(doc, sigY + 15, 'This document was generated automatically by the Rubric System on ' + today + '.');
+    drawFooter(doc, sigY + 15, SYSTEM_URL);
 }
 
 async function downloadStudentPDF() {
