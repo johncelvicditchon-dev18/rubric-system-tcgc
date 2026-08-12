@@ -667,6 +667,40 @@ body {
   box-shadow: 0 8px 28px rgba(17,92,46,0.35);
 }
 
+.rating-readonly-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(220,53,69,0.12);
+  border: 1px solid rgba(220,53,69,0.35);
+  color: #ffb3b3;
+  padding: 12px 18px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  margin-bottom: 20px;
+  animation: fadeUp 0.3s ease;
+}
+
+.btn-view-card {
+  background: rgba(59,130,246,0.25);
+  border: 1px solid rgba(96,165,250,0.5);
+  color: #93c5fd;
+  padding: 10px 22px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.btn-view-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(59,130,246,0.35);
+}
+
 /* ========== INSTRUCTOR DASHBOARD ========== */
 .dashboard { display: flex; min-height: 100vh; }
 

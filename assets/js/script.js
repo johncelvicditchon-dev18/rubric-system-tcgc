@@ -8,6 +8,7 @@ let currentMaxScore = 1000;
 let studentRatings = {};
 let studentCurrentGroup = null;
 let studentGroupStatus = {};
+let studentRatingReadOnly = false;
 
 // Live rubric criteria (single source of truth, loaded from Firestore).
 let liveCriteria = [];
@@ -406,6 +407,8 @@ async function initStudentDashboard() {
     document.getElementById('studentGroupsView').style.display = 'block';
     document.getElementById('studentRatingView').style.display = 'none';
     studentCurrentGroup = null;
+    studentRatingReadOnly = false;
+    document.querySelectorAll('.student-radio').forEach(r => { r.disabled = false; });
 
     await loadLiveCriteria();
 
@@ -448,6 +451,8 @@ function renderStudentGroups() {
         let statusHtml = '';
         if (isOwnGroup) {
             statusHtml = '<span class="own-group-badge"><i class="fas fa-home"></i> YOUR GROUP</span>';
+        } else if (isClosed && hasRated) {
+            statusHtml = `<span class="closed-badge"><i class="fas fa-lock"></i> CLOSED</span> <span class="score-badge">${displayScore}/${criteriaDenominator()}</span>`;
         } else if (isClosed) {
             statusHtml = '<span class="closed-badge"><i class="fas fa-lock"></i> CLOSED</span>';
         } else if (hasRated) {
@@ -459,6 +464,8 @@ function renderStudentGroups() {
         let btnHtml = '';
         if (isOwnGroup) {
             btnHtml = `<button class="btn btn-rate-card btn-disabled" disabled><i class="fas fa-ban"></i> Cannot Rate Own Group</button>`;
+        } else if (isClosed && hasRated) {
+            btnHtml = `<button class="btn btn-view-card" onclick="openStudentGroupRating('${gn}')"><i class="fas fa-eye"></i> View My Score</button>`;
         } else if (isClosed) {
             btnHtml = `<button class="btn btn-rate-card btn-disabled" disabled><i class="fas fa-lock"></i> Group Closed</button>`;
         } else if (hasRated) {
@@ -479,7 +486,10 @@ function renderStudentGroups() {
 
 async function openStudentGroupRating(groupName) {
     const isClosed = studentGroupStatus[groupName] === 1;
-    if (isClosed) {
+    const existing = studentRatings[groupName];
+    const hasRating = existing && existing.total_score > 0;
+
+    if (isClosed && !hasRating) {
         showToast('This group is closed for rating', 'error');
         return;
     }
@@ -490,14 +500,18 @@ async function openStudentGroupRating(groupName) {
     }
 
     studentCurrentGroup = groupName;
+    studentRatingReadOnly = isClosed && hasRating;
     document.getElementById('studentGroupsView').style.display = 'none';
     document.getElementById('studentRatingView').style.display = 'block';
     document.getElementById('studentRatingTitle').textContent = groupName;
 
     const criteria = await loadLiveCriteria();
-    const existing = studentRatings[groupName];
     renderStudentRubric(criteria, existing);
     document.getElementById('studentTotalScore').textContent = 'TOTAL SCORE: 0';
+
+    const readonlyNote = document.getElementById('studentRatingReadonlyNote');
+    if (readonlyNote) readonlyNote.style.display = studentRatingReadOnly ? 'block' : 'none';
+    document.querySelectorAll('.student-radio').forEach(r => { r.disabled = studentRatingReadOnly; });
 
     const emptyMsg = document.getElementById('noRubricCriteria');
     const submitBtn = document.getElementById('submitStudentBtn');
@@ -526,12 +540,13 @@ function renderStudentRubric(criteria, existing) {
     ];
 
     const prev = existing && existing.total_score > 0 ? existing : {};
+    const disabled = studentRatingReadOnly ? ' disabled' : '';
     criteria.forEach(c => {
         const rname = 'rubric_' + c.id;
         let cells = '';
         levels.forEach(lv => {
             const checked = (prev[c.id] === lv.v) ? ' checked' : '';
-            cells += `<td><label class="radio-label-cell"><input type="radio" name="${rname}" value="${lv.v}" class="student-radio" data-criteria="${c.id}" onchange="updateStudentScore()"${checked}><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">${lv.label}</span><span class="radio-desc">${escHtml(c[lv.key] || '')}</span></span></label></td>`;
+            cells += `<td><label class="radio-label-cell"><input type="radio" name="${rname}" value="${lv.v}" class="student-radio" data-criteria="${c.id}" onchange="updateStudentScore()"${checked}${disabled}><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">${lv.label}</span><span class="radio-desc">${escHtml(c[lv.key] || '')}</span></span></label></td>`;
         });
         tbody.innerHTML += `<tr><td class="criteria-name">${escHtml(c.name)}</td>${cells}<td class="score-cell"><span class="radio-score" id="score_${c.id}">0</span></td></tr>`;
     });
@@ -539,6 +554,8 @@ function renderStudentRubric(criteria, existing) {
 
 function closeStudentRating() {
     studentCurrentGroup = null;
+    studentRatingReadOnly = false;
+    document.querySelectorAll('.student-radio').forEach(r => { r.disabled = false; });
     document.getElementById('studentGroupsView').style.display = 'block';
     document.getElementById('studentRatingView').style.display = 'none';
 }
@@ -559,6 +576,10 @@ function updateStudentScore() {
 
 async function handleSaveStudentRating() {
     if (!studentCurrentGroup) return;
+    if (studentRatingReadOnly) {
+        showToast('This group is closed for rating', 'error');
+        return;
+    }
 
     if (liveCriteria.length === 0) { showToast('No criteria configured yet.', 'error'); return; }
 
