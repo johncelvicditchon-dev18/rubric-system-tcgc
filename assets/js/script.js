@@ -456,7 +456,7 @@ function renderStudentGroups() {
         } else if (isClosed) {
             statusHtml = '<span class="closed-badge"><i class="fas fa-lock"></i> CLOSED</span>';
         } else if (hasRated) {
-            statusHtml = `<span class="score-badge">${displayScore}/${criteriaDenominator()}</span>`;
+            statusHtml = '<span class="rate-badge-inline">RATED</span>';
         } else {
             statusHtml = '<span class="rate-badge-inline">RATE HERE</span>';
         }
