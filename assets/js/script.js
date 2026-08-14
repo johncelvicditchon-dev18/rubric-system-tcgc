@@ -116,8 +116,11 @@ async function restoreSectionState() {
     const sel = document.getElementById('sectionSelect');
     const optionValues = sel ? [...sel.options].map(o => o.value) : [];
     let section = (saved && optionValues.includes(saved)) ? saved : '';
-    if (!section && sel && sel.options.length > 1) {
-        section = sel.options[1].value;
+    if (!section && sel && sel.options.length > 0) {
+        // Auto-select the FIRST available section (skip any empty placeholder value).
+        for (let i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value) { section = sel.options[i].value; break; }
+        }
     }
     currentSection = section;
     if (sel) sel.value = section;
