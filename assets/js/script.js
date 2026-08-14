@@ -13,6 +13,51 @@ let studentRatingReadOnly = false;
 // Live rubric criteria (single source of truth, loaded from Firestore).
 let liveCriteria = [];
 
+// ===== Presentational UX helpers (UI layer only — no business logic) =====
+// Button loading state — contract §2.1 / §4.1: spinner + disabled + aria-busy.
+function setButtonLoading(btn, loading) {
+    if (!btn || !btn.classList) return;
+    if (loading) {
+        btn.classList.add('btn-loading');
+        btn.setAttribute('aria-busy', 'true');
+        btn.disabled = true;
+    } else {
+        btn.classList.remove('btn-loading');
+        btn.removeAttribute('aria-busy');
+        btn.disabled = false;
+    }
+}
+
+// Inline field error — contract §2.2 / §4.1: .has-error + aria-invalid + .form-error.
+function setFieldError(input, message) {
+    if (!input) return;
+    const group = input.closest('.form-group');
+    if (!group) return;
+    group.classList.add('has-error');
+    input.setAttribute('aria-invalid', 'true');
+    let err = group.querySelector('.form-error');
+    if (!err) {
+        err = document.createElement('span');
+        err.className = 'form-error';
+        if (input.id) err.id = 'err_' + input.id;
+        group.appendChild(err);
+    }
+    err.textContent = message;
+    if (err.id) input.setAttribute('aria-describedby', err.id);
+}
+
+// Clears the inline error state (bound to input events below).
+function clearFieldError(input) {
+    if (!input) return;
+    const group = input.closest('.form-group');
+    if (!group) return;
+    group.classList.remove('has-error');
+    input.removeAttribute('aria-invalid');
+    if (input.id) input.removeAttribute('aria-describedby');
+    const err = group.querySelector('.form-error');
+    if (err) err.textContent = '';
+}
+
 async function loadLiveCriteria() {
     try {
         const data = await Api.getCriteria();
@@ -76,6 +121,8 @@ async function addNewSection() {
     const name = document.getElementById('newSectionInput').value.trim().toUpperCase();
     if (!name) { showToast('Enter a section name', 'error'); return; }
     const maxSc = parseInt(document.getElementById('newSectionMaxInput').value) || 1000;
+    const addBtn = document.querySelector('#addSectionRow button');
+    setButtonLoading(addBtn, true);
     try {
         const data = await Api.saveSectionConfig(currentInstructor, name, '', maxSc);
         if (data.status === 'success') {
@@ -95,6 +142,8 @@ async function addNewSection() {
         }
     } catch (e) {
         showToast('Network error', 'error');
+    } finally {
+        setButtonLoading(addBtn, false);
     }
 }
 
@@ -225,6 +274,7 @@ function showSignup(e) {
 async function handleLogin(e) {
     e.preventDefault();
     const role = document.getElementById('loginRole').value;
+    const submitBtn = e.target.querySelector('button[type="submit"]');
 
     if (role === 'instructor') {
         const username = document.getElementById('loginUsername').value.trim();
@@ -232,9 +282,13 @@ async function handleLogin(e) {
 
         if (!username || !password) {
             showToast('Please fill in all fields', 'error');
+            if (!username) setFieldError(document.getElementById('loginUsername'), 'Username is required');
+            if (!password) setFieldError(document.getElementById('loginPassword'), 'Password is required');
             return;
         }
-
+        clearFieldError(document.getElementById('loginUsername'));
+        clearFieldError(document.getElementById('loginPassword'));
+        setButtonLoading(submitBtn, true);
         try {
             const data = await Api.login(username, password);
 
@@ -255,13 +309,17 @@ async function handleLogin(e) {
         } catch (err) {
             console.error('Login error:', err.message, err);
             showToast('Error: ' + err.message, 'error');
+        } finally {
+            setButtonLoading(submitBtn, false);
         }
     } else {
         const name = document.getElementById('loginStudentName').value.trim();
         const section = document.getElementById('loginStudentSection').value;
-        if (!name) { showToast('Please enter your name', 'error'); return; }
-        if (!section) { showToast('Please select your section', 'error'); return; }
-
+        if (!name) { showToast('Please enter your name', 'error'); setFieldError(document.getElementById('loginStudentName'), 'Rater name is required'); return; }
+        if (!section) { showToast('Please select your section', 'error'); setFieldError(document.getElementById('loginStudentSection'), 'Section is required'); return; }
+        clearFieldError(document.getElementById('loginStudentName'));
+        clearFieldError(document.getElementById('loginStudentSection'));
+        setButtonLoading(submitBtn, true);
         try {
             const data = await Api.studentLogin(name, section);
 
@@ -284,6 +342,8 @@ async function handleLogin(e) {
         } catch (err) {
             console.error('Student login error:', err.message, err);
             showToast('Error: ' + err.message, 'error');
+        } finally {
+            setButtonLoading(submitBtn, false);
         }
     }
 }
@@ -294,8 +354,18 @@ async function handleSignup(e) {
     const username = document.getElementById('signupUsername').value.trim();
     const password = document.getElementById('signupPassword').value.trim();
 
-    if (!name || !username || !password) { showToast('Please fill in all fields', 'error'); return; }
-
+    if (!name || !username || !password) {
+        showToast('Please fill in all fields', 'error');
+        if (!name) setFieldError(document.getElementById('signupName'), 'Full name is required');
+        if (!username) setFieldError(document.getElementById('signupUsername'), 'Username is required');
+        if (!password) setFieldError(document.getElementById('signupPassword'), 'Password is required');
+        return;
+    }
+    clearFieldError(document.getElementById('signupName'));
+    clearFieldError(document.getElementById('signupUsername'));
+    clearFieldError(document.getElementById('signupPassword'));
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    setButtonLoading(submitBtn, true);
     try {
         const data = await Api.signup(name, username, password);
 
@@ -311,6 +381,8 @@ async function handleSignup(e) {
     } catch (err) {
         console.error('Signup error:', err);
         showToast('Network error. Please try again.', 'error');
+    } finally {
+        setButtonLoading(submitBtn, false);
     }
 }
 
@@ -354,12 +426,19 @@ async function showInstructorDashboard() {
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
+    const hamburger = document.querySelector('.hamburger-btn');
     const isMobile = window.matchMedia('(max-width: 768px)').matches || window.innerWidth <= 768;
     if (isMobile) {
         const opening = !sidebar.classList.contains('open');
         sidebar.classList.toggle('open');
         overlay.classList.toggle('show');
         sidebar.style.transform = opening ? 'translateX(0)' : 'translateX(-100%)';
+        if (hamburger) hamburger.setAttribute('aria-expanded', sidebar.classList.contains('open') ? 'true' : 'false');
+        // Move focus into the sidebar when it opens on mobile — contract §4.3
+        if (opening) {
+            const firstNav = sidebar.querySelector('.nav-link');
+            if (firstNav) setTimeout(function () { firstNav.focus(); }, 40);
+        }
     } else {
         sidebar.classList.toggle('collapsed');
         sidebar.style.transform = '';
@@ -596,6 +675,8 @@ async function handleSaveStudentRating() {
         total += val;
     });
 
+    const submitBtn = document.getElementById('submitStudentBtn');
+    setButtonLoading(submitBtn, true);
     try {
         const data = await Api.saveGroupRating({
             rater_name: currentUserName,
@@ -614,6 +695,8 @@ async function handleSaveStudentRating() {
         }
     } catch (err) {
         showToast('Network error', 'error');
+    } finally {
+        setButtonLoading(submitBtn, false);
     }
 }
 
@@ -1342,7 +1425,7 @@ function openStudentDetail(name, e) {
     e.preventDefault();
     document.getElementById('detailStudentName').textContent = name;
     openModalOverlay(document.getElementById('studentDetailModal'));
-    document.getElementById('studentDetailContent').innerHTML = '<p style="text-align:center;color:var(--neutral-400);padding:40px;"><i class="fas fa-spinner fa-spin" style="font-size:32px;"></i></p>';
+    document.getElementById('studentDetailContent').innerHTML = '<div class="detail-loading"><i class="fas fa-spinner fa-spin"></i></div>';
     document.getElementById('noStudentDetail').style.display = 'none';
     loadStudentDetail(name);
 }
@@ -1359,10 +1442,10 @@ async function loadStudentDetail(name) {
         if (data.status === 'success') {
             renderStudentDetail(data.ratings);
         } else {
-            document.getElementById('studentDetailContent').innerHTML = '<p class="no-data" style="display:block;">Error loading details.</p>';
+            document.getElementById('studentDetailContent').innerHTML = '<p class="no-data show">Error loading details.</p>';
         }
     } catch (err) {
-        document.getElementById('studentDetailContent').innerHTML = '<p class="no-data" style="display:block;">Network error.</p>';
+        document.getElementById('studentDetailContent').innerHTML = '<p class="no-data show">Network error.</p>';
     }
 }
 
@@ -1492,11 +1575,11 @@ async function loadSectionsManagement() {
             tbody.innerHTML = data.sections.map(s => {
                 const sid = s.section_name.replace(/[^a-zA-Z0-9_-]/g, '_');
                 return `<tr>
-                    <td><input type="text" id="sec_name_${sid}" value="${s.section_name}" class="section-edit-input"></td>
-                    <td><input type="number" id="sec_max_${sid}" value="${s.max_score || 1000}" class="section-edit-input" style="width:100px;"></td>
+                    <td><input type="text" id="sec_name_${sid}" value="${s.section_name}" class="section-edit-input" aria-label="Section name"></td>
+                    <td><input type="number" id="sec_max_${sid}" value="${s.max_score || 1000}" class="section-edit-input section-number-input" aria-label="Maximum score"></td>
                     <td>
-                        <button class="btn btn-success" style="padding:4px 10px;font-size:11px;" onclick="saveSectionRow('${s.section_name}')"><i class="fas fa-save"></i></button>
-                        <button class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteSectionRow('${s.section_name}')"><i class="fas fa-trash"></i></button>
+                        <button class="btn btn-success btn-sm" onclick="saveSectionRow('${s.section_name}')" aria-label="Save section"><i class="fas fa-save"></i></button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteSectionRow('${s.section_name}')" aria-label="Delete section"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
             }).join('');
@@ -1588,22 +1671,22 @@ async function loadCriteriaManagement() {
             const rid = c.id;
             const n = criteria.length;
             const upBtn = i > 0
-                ? `<button class="btn" style="padding:4px 8px;font-size:11px;" onclick="moveCriterion('${rid}', -1)"><i class="fas fa-arrow-up"></i></button>`
-                : `<button class="btn" style="padding:4px 8px;font-size:11px;" disabled><i class="fas fa-arrow-up"></i></button>`;
+                ? `<button class="btn btn-sm" onclick="moveCriterion('${rid}', -1)" aria-label="Move criterion up"><i class="fas fa-arrow-up"></i></button>`
+                : `<button class="btn btn-sm" disabled aria-label="Move criterion up"><i class="fas fa-arrow-up"></i></button>`;
             const downBtn = i < n - 1
-                ? `<button class="btn" style="padding:4px 8px;font-size:11px;" onclick="moveCriterion('${rid}', 1)"><i class="fas fa-arrow-down"></i></button>`
-                : `<button class="btn" style="padding:4px 8px;font-size:11px;" disabled><i class="fas fa-arrow-down"></i></button>`;
+                ? `<button class="btn btn-sm" onclick="moveCriterion('${rid}', 1)" aria-label="Move criterion down"><i class="fas fa-arrow-down"></i></button>`
+                : `<button class="btn btn-sm" disabled aria-label="Move criterion down"><i class="fas fa-arrow-down"></i></button>`;
             return `<tr>
                 <td>${i + 1}</td>
-                <td><input type="text" id="crit_name_${rid}" value="${escHtml(c.name)}" class="section-edit-input" onfocus="autoGrowInput(this)" oninput="autoGrowInput(this)" onblur="resetInputWidth(this)" style="width:100%;"></td>
-                <td><input type="text" id="crit_desc4_${rid}" value="${escHtml(c.desc4 || '')}" class="section-edit-input" onfocus="autoGrowInput(this)" oninput="autoGrowInput(this)" onblur="resetInputWidth(this)" style="width:100%;"></td>
-                <td><input type="text" id="crit_desc3_${rid}" value="${escHtml(c.desc3 || '')}" class="section-edit-input" onfocus="autoGrowInput(this)" oninput="autoGrowInput(this)" onblur="resetInputWidth(this)" style="width:100%;"></td>
-                <td><input type="text" id="crit_desc2_${rid}" value="${escHtml(c.desc2 || '')}" class="section-edit-input" onfocus="autoGrowInput(this)" oninput="autoGrowInput(this)" onblur="resetInputWidth(this)" style="width:100%;"></td>
-                <td><input type="text" id="crit_desc1_${rid}" value="${escHtml(c.desc1 || '')}" class="section-edit-input" onfocus="autoGrowInput(this)" oninput="autoGrowInput(this)" onblur="resetInputWidth(this)" style="width:100%;"></td>
-                <td style="white-space:nowrap;">
+                <td><input type="text" id="crit_name_${rid}" value="${escHtml(c.name)}" class="section-edit-input u-full" onfocus="autoGrowInput(this)" oninput="autoGrowInput(this)" onblur="resetInputWidth(this)" aria-label="Criterion name"></td>
+                <td><input type="text" id="crit_desc4_${rid}" value="${escHtml(c.desc4 || '')}" class="section-edit-input u-full" onfocus="autoGrowInput(this)" oninput="autoGrowInput(this)" onblur="resetInputWidth(this)" aria-label="Excellent (4) description"></td>
+                <td><input type="text" id="crit_desc3_${rid}" value="${escHtml(c.desc3 || '')}" class="section-edit-input u-full" onfocus="autoGrowInput(this)" oninput="autoGrowInput(this)" onblur="resetInputWidth(this)" aria-label="Good (3) description"></td>
+                <td><input type="text" id="crit_desc2_${rid}" value="${escHtml(c.desc2 || '')}" class="section-edit-input u-full" onfocus="autoGrowInput(this)" oninput="autoGrowInput(this)" onblur="resetInputWidth(this)" aria-label="Fair (2) description"></td>
+                <td><input type="text" id="crit_desc1_${rid}" value="${escHtml(c.desc1 || '')}" class="section-edit-input u-full" onfocus="autoGrowInput(this)" oninput="autoGrowInput(this)" onblur="resetInputWidth(this)" aria-label="Needs improvement (1) description"></td>
+                <td class="action-buttons">
                     ${upBtn} ${downBtn}
-                    <button class="btn btn-success" style="padding:4px 8px;font-size:11px;" onclick="saveCriterionRow('${rid}')"><i class="fas fa-save"></i></button>
-                    <button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="deleteCriterionRow('${rid}')"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-success btn-sm" onclick="saveCriterionRow('${rid}')" aria-label="Save criterion"><i class="fas fa-save"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteCriterionRow('${rid}')" aria-label="Delete criterion"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>`;
         }).join('');
@@ -1636,6 +1719,8 @@ async function addNewCriterion() {
         position: liveCriteria.length
     };
 
+    const addBtn = document.querySelector('#addCriterionRow button');
+    setButtonLoading(addBtn, true);
     try {
         const data = await Api.saveCriterion(rec);
         if (data.status === 'success') {
@@ -1651,6 +1736,8 @@ async function addNewCriterion() {
         }
     } catch (e) {
         showToast('Network error', 'error');
+    } finally {
+        setButtonLoading(addBtn, false);
     }
 }
 
@@ -1767,12 +1854,12 @@ function renderAdminGroupResults(groups) {
             <div class="admin-card-body">
                 <label class="admin-member-label">Members (Optional)</label>
                 <div class="admin-member-inputs">
-                    <input type="text" class="admin-member-input" id="member1_${gn.replace(' ', '_')}" placeholder="Member 1" value="${grp.member1_name}" style="text-transform: uppercase;" oninput="debouncedSaveMembers('${gn}')">
-                    <input type="text" class="admin-member-input" id="member2_${gn.replace(' ', '_')}" placeholder="Member 2" value="${grp.member2_name}" style="text-transform: uppercase;" oninput="debouncedSaveMembers('${gn}')">
-                    <input type="text" class="admin-member-input" id="member3_${gn.replace(' ', '_')}" placeholder="Member 3" value="${grp.member3_name}" style="text-transform: uppercase;" oninput="debouncedSaveMembers('${gn}')">
-                    <input type="text" class="admin-member-input" id="member4_${gn.replace(' ', '_')}" placeholder="Member 4" value="${grp.member4_name}" style="text-transform: uppercase;" oninput="debouncedSaveMembers('${gn}')">
-                    <input type="text" class="admin-member-input" id="member5_${gn.replace(' ', '_')}" placeholder="Member 5" value="${grp.member5_name}" style="text-transform: uppercase;" oninput="debouncedSaveMembers('${gn}')">
-                    <input type="text" class="admin-member-input" id="member6_${gn.replace(' ', '_')}" placeholder="Member 6" value="${grp.member6_name}" style="text-transform: uppercase;" oninput="debouncedSaveMembers('${gn}')">
+                    <input type="text" class="admin-member-input u-text-upper" id="member1_${gn.replace(' ', '_')}" placeholder="Member 1" aria-label="Member 1" value="${grp.member1_name}" oninput="debouncedSaveMembers('${gn}')">
+                    <input type="text" class="admin-member-input u-text-upper" id="member2_${gn.replace(' ', '_')}" placeholder="Member 2" aria-label="Member 2" value="${grp.member2_name}" oninput="debouncedSaveMembers('${gn}')">
+                    <input type="text" class="admin-member-input u-text-upper" id="member3_${gn.replace(' ', '_')}" placeholder="Member 3" aria-label="Member 3" value="${grp.member3_name}" oninput="debouncedSaveMembers('${gn}')">
+                    <input type="text" class="admin-member-input u-text-upper" id="member4_${gn.replace(' ', '_')}" placeholder="Member 4" aria-label="Member 4" value="${grp.member4_name}" oninput="debouncedSaveMembers('${gn}')">
+                    <input type="text" class="admin-member-input u-text-upper" id="member5_${gn.replace(' ', '_')}" placeholder="Member 5" aria-label="Member 5" value="${grp.member5_name}" oninput="debouncedSaveMembers('${gn}')">
+                    <input type="text" class="admin-member-input u-text-upper" id="member6_${gn.replace(' ', '_')}" placeholder="Member 6" aria-label="Member 6" value="${grp.member6_name}" oninput="debouncedSaveMembers('${gn}')">
                 </div>
             </div>
         </div>`;
@@ -1884,6 +1971,8 @@ async function loadPendingCount() {
 }
 
 async function approveAccount(id) {
+    const confirmed = await showConfirmDialog({ title: 'Approve Account', message: 'Approve this pending instructor account? They will be able to log in immediately.', type: 'info', confirmText: 'Approve', cancelText: 'Cancel' });
+    if (!confirmed) return;
     try {
         const data = await Api.approveAccount(id);
         if (data.status === 'success') {
@@ -1946,10 +2035,14 @@ async function confirmResetRatings() {
     const typedName = document.getElementById('resetConfirmName').value.trim().toUpperCase();
     if (!typedName) {
         showToast('Please type your full name to confirm', 'error');
+        setFieldError(document.getElementById('resetConfirmName'), 'Type your full name to confirm');
         return;
     }
+    clearFieldError(document.getElementById('resetConfirmName'));
 
     const loading = showLoadingDialog('Deleting all ratings...');
+    const confirmBtn = document.querySelector('#resetModal .modal-actions .btn-danger');
+    setButtonLoading(confirmBtn, true);
     try {
         const data = await Api.resetRatings(typedName, sessionStorage.getItem('accountUsername') || '');
         if (data.status === 'success') {
@@ -1964,31 +2057,38 @@ async function confirmResetRatings() {
         showToast('Network error', 'error');
     } finally {
         loading.close();
+        setButtonLoading(confirmBtn, false);
     }
 }
 
 // ========== PASSWORD TOGGLE (Auth Forms) ==========
 function toggleLoginPassword() {
     const el = document.getElementById('loginPassword');
-    const icon = document.querySelector('#loginPassword').parentElement.querySelector('.btn-toggle-pass i');
+    const btn = el.parentElement.querySelector('.btn-toggle-pass');
+    const icon = btn.querySelector('i');
     if (el.type === 'password') {
         el.type = 'text';
         icon.className = 'fas fa-eye-slash';
+        btn.setAttribute('aria-label', 'Hide password');
     } else {
         el.type = 'password';
         icon.className = 'fas fa-eye';
+        btn.setAttribute('aria-label', 'Toggle password visibility');
     }
 }
 
 function toggleSignupPassword() {
     const el = document.getElementById('signupPassword');
-    const icon = document.querySelector('#signupPassword').parentElement.querySelector('.btn-toggle-pass i');
+    const btn = el.parentElement.querySelector('.btn-toggle-pass');
+    const icon = btn.querySelector('i');
     if (el.type === 'password') {
         el.type = 'text';
         icon.className = 'fas fa-eye-slash';
+        btn.setAttribute('aria-label', 'Hide password');
     } else {
         el.type = 'password';
         icon.className = 'fas fa-eye';
+        btn.setAttribute('aria-label', 'Toggle password visibility');
     }
 }
 
@@ -2031,9 +2131,9 @@ function startEditUsername() {
     const td = document.getElementById('accountUsernameView');
     const current = sessionStorage.getItem('accountUsername') || '';
     td.innerHTML = `<div class="inline-edit-group">
-        <input type="text" id="editUsernameInput" class="inline-edit-input" value="${current}" />
-        <button class="btn-inline-save" onclick="saveEditUsername()"><i class="fas fa-check"></i></button>
-        <button class="btn-inline-cancel" onclick="cancelEditUsername()"><i class="fas fa-times"></i></button>
+        <input type="text" id="editUsernameInput" class="inline-edit-input" value="${current}" aria-label="Edit username" />
+        <button class="btn-inline-save" onclick="saveEditUsername()" aria-label="Save username"><i class="fas fa-check"></i></button>
+        <button class="btn-inline-cancel" onclick="cancelEditUsername()" aria-label="Cancel username edit"><i class="fas fa-times"></i></button>
     </div>`;
     document.getElementById('editUsernameInput').focus();
 }
@@ -2069,9 +2169,9 @@ async function saveEditUsername() {
 function startEditPassword() {
     const td = document.querySelector('#passwordRow .profile-detail-value');
     td.innerHTML = `<div class="inline-edit-group">
-        <input type="text" id="editPasswordInput" class="inline-edit-input" placeholder="New password" />
-        <button class="btn-inline-save" onclick="saveEditPassword()"><i class="fas fa-check"></i></button>
-        <button class="btn-inline-cancel" onclick="cancelEditPassword()"><i class="fas fa-times"></i></button>
+        <input type="text" id="editPasswordInput" class="inline-edit-input" placeholder="New password" aria-label="New password" />
+        <button class="btn-inline-save" onclick="saveEditPassword()" aria-label="Save password"><i class="fas fa-check"></i></button>
+        <button class="btn-inline-cancel" onclick="cancelEditPassword()" aria-label="Cancel password edit"><i class="fas fa-times"></i></button>
     </div>`;
     document.getElementById('editPasswordInput').focus();
 }
@@ -2202,8 +2302,15 @@ function hideLoadingToast() {
 // --- Shared modal-overlay helpers (static modals) ---
 function openModalOverlay(el, focusSelector) {
     if (!el) return;
+    if (el._closeTimer) { clearTimeout(el._closeTimer); el._closeTimer = null; }
     rememberFocus();
+    el.classList.remove('closing');
     el.style.display = 'flex';
+    // Focus trap: keep Tab cycling inside the modal — contract §2.5 / §4.3
+    if (!el._trapFn) {
+        el._trapFn = function (e) { _trapFocus(el, e); };
+        el.addEventListener('keydown', el._trapFn);
+    }
     const target = focusSelector
         ? el.querySelector(focusSelector)
         : el.querySelector('.modal-close, input:not([type="hidden"]), select, button');
@@ -2212,8 +2319,25 @@ function openModalOverlay(el, focusSelector) {
 
 function closeModalOverlay(el) {
     if (!el) return;
-    el.style.display = 'none';
-    restoreFocus();
+    if (el.classList.contains('closing')) return;
+    // Play the scale-out exit animation, then hide — contract §2.5
+    el.classList.add('closing');
+    const hide = function () {
+        el._closeTimer = null;
+        el.style.display = 'none';
+        el.classList.remove('closing');
+        if (el._trapFn) {
+            el.removeEventListener('keydown', el._trapFn);
+            el._trapFn = null;
+        }
+        restoreFocus();
+    };
+    // Skip the exit-animation delay under prefers-reduced-motion — a11y
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        hide();
+        return;
+    }
+    el._closeTimer = setTimeout(hide, 200);
 }
 
 // --- UI Dialog engine (alert / confirm / loading) ---
@@ -2319,9 +2443,22 @@ function showLoadingDialog(message = 'Please wait...') {
     };
 }
 
-// --- Escape key closes the topmost static modal ---
+// --- Escape key: closes dropdown → mobile sidebar → topmost static modal ---
 document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
+    // Profile dropdown first — contract §4.4
+    const dropdown = document.getElementById('profileDropdown');
+    if (dropdown && dropdown.classList.contains('show')) {
+        dropdown.classList.remove('show');
+        return;
+    }
+    // Mobile sidebar next — contract §4.4
+    const sidebar = document.getElementById('sidebar');
+    const isMobile = window.matchMedia('(max-width: 768px)').matches || window.innerWidth <= 768;
+    if (isMobile && sidebar && sidebar.classList.contains('open')) {
+        toggleSidebar();
+        return;
+    }
     if (document.querySelector('.ui-dialog-overlay')) return; // ui-dialog handles its own Esc
     const overlays = Array.from(document.querySelectorAll('.modal-overlay')).filter(el => {
         const st = window.getComputedStyle(el);
@@ -2331,4 +2468,9 @@ document.addEventListener('keydown', function (e) {
     const top = overlays[overlays.length - 1];
     const closeBtn = top.querySelector('.modal-close');
     if (closeBtn) closeBtn.click();
+});
+
+// --- Inline validation: clear the error state as the user types — contract §2.2
+document.addEventListener('input', function (e) {
+    if (e.target && e.target.closest && e.target.closest('.form-group')) clearFieldError(e.target);
 });
