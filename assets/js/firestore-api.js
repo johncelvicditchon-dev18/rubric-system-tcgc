@@ -186,12 +186,27 @@ const Api = (() => {
             const exists = await firstDoc(COLL_ACCOUNTS, [['username', '==', username]]);
             if (exists) return { status: 'error', message: 'Username already exists!' };
             const hash = await hashPassword(password);
-            await db.collection(COLL_ACCOUNTS).add({
-                instructor_name: String(name || '').trim().toUpperCase(),
+            const instructorName = String(name || '').trim().toUpperCase();
+            const accountRef = await db.collection(COLL_ACCOUNTS).add({
+                instructor_name: instructorName,
                 username: username,
                 password: hash,
                 status: 'pending'
             });
+            try {
+                const batch = db.batch();
+                GROUP_NAMES.forEach(gn => {
+                    batch.set(db.collection(COLL_GROUPS).doc(groupDocId(instructorName, '', gn)), emptyGroupData(instructorName, '', gn));
+                });
+                await batch.commit();
+            } catch (e) {
+                try {
+                    await db.collection(COLL_ACCOUNTS).doc(accountRef.id).delete();
+                } catch (rollbackErr) {
+                    // best-effort rollback only — ignore rollback failures
+                }
+                return { status: 'error', message: 'Signup failed — please try again' };
+            }
             return { status: 'success', message: 'Account created! Waiting for admin approval. You cannot login until approved.' };
         },
 
