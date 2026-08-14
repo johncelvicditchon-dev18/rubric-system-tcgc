@@ -633,12 +633,17 @@ async function loadStudentRatingsTable() {
     }
 }
 
+let studentRatingsData = [];
+
 function renderStudentRatingsTable(ratings) {
+    studentRatingsData = ratings || [];
     const thead = document.getElementById('studentRatingsHead');
     const tbody = document.getElementById('studentRatingsBody');
     const tfoot = document.getElementById('studentRatingsFoot');
     const noData = document.getElementById('noStudentRatings');
+    const searchInput = document.getElementById('studentRatingsSearchInput');
     if (!thead || !tbody) return;
+    if (searchInput) searchInput.value = '';
 
     let headerHtml = '<tr><th>#</th><th>NAME OF THE RATER</th>';
     for (let i = 1; i <= 10; i++) {
@@ -655,7 +660,10 @@ function renderStudentRatingsTable(ratings) {
     }
 
     if (noData) noData.style.display = 'none';
+    renderStudentRatingsRows(tbody, tfoot, ratings);
+}
 
+function renderStudentRatingsRows(tbody, tfoot, ratings) {
     let bodyHtml = '';
     let colTotals = {};
     for (let i = 1; i <= 10; i++) colTotals['GROUP ' + i] = 0;
@@ -684,6 +692,24 @@ function renderStudentRatingsTable(ratings) {
         }
         footHtml += '</tr>';
         tfoot.innerHTML = footHtml;
+    }
+}
+
+function filterStudentRatings() {
+    const query = (document.getElementById('studentRatingsSearchInput').value || '').toLowerCase();
+    const tbody = document.getElementById('studentRatingsBody');
+    const tfoot = document.getElementById('studentRatingsFoot');
+    const noData = document.getElementById('noStudentRatings');
+    if (!tbody) return;
+
+    const filtered = studentRatingsData.filter(r => r.name.toLowerCase().includes(query));
+    if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        if (tfoot) tfoot.innerHTML = '';
+        if (noData) noData.style.display = 'block';
+    } else {
+        if (noData) noData.style.display = 'none';
+        renderStudentRatingsRows(tbody, tfoot, filtered);
     }
 }
 

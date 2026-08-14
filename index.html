@@ -263,7 +263,8 @@
         <!-- Student List Section -->
         <div id="studentListSection" class="content-section">
             <div class="card"><div class="card-header"><h3><i class="fas fa-list"></i> STUDENT RATINGS</h3>
-                <div style="display:flex;gap:8px;">
+                <div class="card-header-toolbar">
+                    <input type="text" id="studentRatingsSearchInput" class="search-input header-search" placeholder="Search rater..." oninput="filterStudentRatings()">
                     <button class="btn-pdf" onclick="exportStudentPDF()" title="Print"><i class="fas fa-print"></i> Print</button>
                     <button class="btn-pdf btn-download" onclick="downloadStudentPDF()" title="Download PDF"><i class="fas fa-download"></i> Download PDF</button>
                 </div>
