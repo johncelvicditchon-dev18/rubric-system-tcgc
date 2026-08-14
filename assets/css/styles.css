@@ -28,11 +28,32 @@
   --red-100: #fef2f2;
   --red-50: #fce4ec;
 
+  /* Extended reds (gradient ends) — UI/UX contract §2.1 */
+  --red-700: #b91c1c;
+  --red-800: #c62828;
+
   --amber-500: #f59e0b;
   --amber-50: #fffbeb;
+  --amber-600: #d97706; /* warning gradient end — contract §2.6 */
 
   --blue-500: #3b82f6;
   --blue-100: #dbeafe;
+  --blue-700: #1d4ed8; /* info gradient end — contract §2.6 */
+
+  /* Spacing scale — contract §1.3 */
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 12px;
+  --space-6: 14px;
+  --space-7: 16px;
+  --space-8: 20px;
+  --space-9: 24px;
+  --space-10: 28px;
+  --space-11: 32px;
+  --space-12: 36px;
+  --space-13: 44px;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -94,6 +115,9 @@ body {
 @keyframes overlayFadeOut { from { opacity: 1; } to { opacity: 0; } }
 @keyframes dialogPopIn { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes dialogPopOut { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(10px) scale(0.97); } }
+/* New keyframes — contract §8 */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes scaleOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.94); } }
 
 /* ========== AUTH ========== */
 .auth-bg {
@@ -1089,9 +1113,11 @@ body {
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 .card-header h3 {
-  font-family: var(--font-display);
-  font-size: 20px;
-  letter-spacing: 2px;
+  /* Bebas Neue demoted — contract §6: display font only for large headings */
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 1px;
 }
 .card-header h3 i { margin-right: 8px; font-size: 16px; opacity: 0.7; }
 .section-badge {
@@ -1270,10 +1296,10 @@ body {
 .account-card { margin-top: 20px; transition: box-shadow var(--transition); }
 .account-card:hover { box-shadow: var(--shadow-md); }
 .account-card-header { background: white; color: var(--green-700); border-bottom: 1px solid var(--neutral-100); }
-.account-card-header h3 { color: var(--green-700); font-family: var(--font-display); font-size: 18px; letter-spacing: 2px; }
+.account-card-header h3 { color: var(--green-700); font-family: var(--font-body); font-weight: 800; font-size: 16px; letter-spacing: 1px; }
 .account-card-header h3 i { color: var(--green-600); }
 .account-card-header-danger { background: var(--red-50); border-bottom: 1px solid var(--red-100); }
-.account-card-header-danger h3 { color: var(--red-600); font-size: 18px; font-family: var(--font-display); letter-spacing: 2px; }
+.account-card-header-danger h3 { color: var(--red-600); font-size: 16px; font-family: var(--font-body); font-weight: 800; letter-spacing: 1px; }
 .account-card-header-danger h3 i { color: var(--red-600); }
 .account-card-danger { border-left: 4px solid var(--red-600); }
 .account-card-desc { color: var(--neutral-600); font-size: 13px; margin-bottom: 16px; line-height: 1.6; }
@@ -1362,6 +1388,10 @@ body {
 
 .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
+/* Min-widths so tables scroll inside .table-container instead of overflowing the page — contract §2.3 */
+#criteriaTable { min-width: 900px; }
+#sectionsTable { min-width: 540px; }
+
 .name-cell { font-weight: 700; color: var(--neutral-800); white-space: nowrap; }
 .score-cell { text-align: center; }
 
@@ -1391,7 +1421,7 @@ body {
 .btn-edit { background: var(--green-50); color: var(--green-700); }
 .btn-edit:hover { background: var(--green-100); }
 .btn-delete { background: var(--red-50); color: var(--red-600); }
-.btn-delete:hover { background: #ffcdd2; }
+.btn-delete:hover { background: var(--red-100); }
 
 /* Rater List Table */
 #raterListTable {
@@ -1457,9 +1487,11 @@ body {
 .admin-card-header::before { content: ''; left: 0; top: 0; bottom: 0; width: 4px; background: var(--green-700); position: absolute; }
 .admin-card-title { display: flex; align-items: center; gap: 10px; }
 .admin-card-title h4 {
-  font-family: var(--font-display);
-  font-size: 18px;
-  letter-spacing: 2px;
+  /* Bebas Neue demoted — contract §6 */
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 1px;
   margin: 0;
   color: var(--neutral-800);
 }
@@ -1491,7 +1523,7 @@ body {
 .btn-open { background: var(--green-50); color: var(--green-700); border-color: var(--green-200); }
 .btn-open:hover { background: var(--green-100); border-color: var(--green-400); }
 .btn-closed { background: var(--red-50); color: var(--red-600); border-color: var(--red-100); }
-.btn-closed:hover { background: #fce4ec; border-color: var(--red-500); }
+.btn-closed:hover { background: var(--red-50); border-color: var(--red-500); }
 
 .admin-card-body { padding: 16px 20px; }
 
@@ -1546,6 +1578,7 @@ body {
 .btn-save-members i { margin-right: 5px; }
 
 /* No Data */
+/* Empty state — shown via .show (JS) or inline display, contract §2.9 */
 .no-data {
   display: none;
   text-align: center;
@@ -1554,6 +1587,7 @@ body {
   font-size: 16px;
   font-weight: 600;
 }
+.no-data.show { display: block; }
 .no-data i {
   display: block;
   font-size: 52px;
@@ -1578,6 +1612,47 @@ body {
 }
 .btn i { font-size: 13px; }
 .btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+
+/* Disabled state — contract §2.1 */
+.btn:disabled, .btn[disabled], .btn.btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Loading state — contract §2.1 / §2.10: CSS spinner + aria-busy */
+.btn-loading {
+  pointer-events: none;
+  opacity: 0.9;
+  cursor: progress;
+}
+.btn-loading::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+.btn-sm { padding: 4px 10px; font-size: 11px; min-height: 28px; }
+.btn-sm i { font-size: 11px; }
+
+/* Neutral (gray cancel) variant — contract §7 */
+.btn--neutral {
+  background: var(--neutral-200);
+  color: var(--neutral-700);
+  border: none;
+}
+.btn--neutral:hover {
+  background: var(--neutral-300);
+  color: var(--neutral-800);
+  transform: translateY(-1px);
+}
 
 .btn-success {
   background: linear-gradient(135deg, var(--green-500), var(--green-700));
@@ -1585,7 +1660,7 @@ body {
 }
 .btn-success:hover { box-shadow: 0 6px 20px rgba(26,138,66,0.35); }
 .btn-danger {
-  background: linear-gradient(135deg, var(--red-600), #c62828);
+  background: linear-gradient(135deg, var(--red-600), var(--red-800));
   color: white;
 }
 .btn-danger:hover { box-shadow: 0 6px 20px rgba(220,53,69,0.3); }
@@ -1624,6 +1699,8 @@ body {
   animation: fadeIn 0.2s ease;
 }
 .modal-overlay.show { display: flex; }
+/* Exit animation — contract §2.5 (class added by closeModalOverlay) */
+.modal-overlay.closing { animation: scaleOut 0.2s ease forwards; }
 
 .modal {
   background: white;
@@ -1652,6 +1729,25 @@ body {
   color: var(--green-700);
 }
 .modal-header h3 i { margin-right: 8px; }
+/* Danger header variant — contract §6 (replaces inline gradient on reset modal) */
+.modal-header--danger {
+  background: linear-gradient(135deg, var(--red-600), var(--red-800));
+  color: white;
+  border-bottom: 2px solid var(--neutral-100);
+}
+.modal-header--danger h3 { color: white; }
+.modal-header--danger .modal-close { color: rgba(255,255,255,0.6); }
+.modal-header--danger .modal-close:hover { color: white; background: rgba(255,255,255,0.12); }
+
+/* Danger note paragraph — contract §6 (replaces inline warning text styles) */
+.modal-danger-note {
+  color: var(--red-600);
+  font-weight: 700;
+  margin-bottom: 20px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .modal-close {
   background: none;
   border: none;
@@ -1662,6 +1758,12 @@ body {
   border-radius: var(--radius-sm);
   transition: all var(--transition);
   line-height: 1;
+  /* 44px hit area — contract §2.5 / AC#16 */
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .modal-close:hover { color: var(--neutral-800); background: var(--neutral-50); }
 
@@ -1698,6 +1800,33 @@ body {
   border-color: var(--green-500);
   background: white;
   box-shadow: 0 0 0 3px rgba(26,138,66,0.1);
+}
+.form-group input::placeholder, .form-group select::placeholder, .form-group textarea::placeholder { color: var(--neutral-400); }
+
+/* Required marker — contract §2.2 / §5 */
+.form-group:has(input[required], select[required]) > label::after,
+.form-group:has(input[aria-required="true"], select[aria-required="true"]) > label::after {
+  content: ' *';
+  color: var(--red-500);
+  font-weight: 800;
+}
+
+/* Inline validation states — contract §2.2 / §4.1 */
+.form-group.has-error input, .form-group.has-error select, .form-group.has-error textarea {
+  border-color: var(--red-500);
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+}
+.form-group.has-error label { color: var(--red-600); }
+.form-error {
+  display: none;
+  font-size: 11px;
+  color: var(--red-600);
+  margin-top: 4px;
+  font-weight: 600;
+}
+.form-group.has-error .form-error { display: block; }
+.form-group.has-success input, .form-group.has-success select, .form-group.has-success textarea {
+  border-color: var(--green-500);
 }
 
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -1741,6 +1870,8 @@ body {
 .delete-warning i { margin-right: 5px; }
 
 .modal-actions { display: flex; gap: 10px; justify-content: center; }
+/* Right-aligned action row — contract §7 (replaces inline flex-end styles) */
+.modal-actions--end { margin-top: 24px; justify-content: flex-end; }
 .modal-actions .btn {
   padding: 12px 28px;
   border-radius: var(--radius-md);
@@ -1842,7 +1973,7 @@ body {
   transition: background var(--transition);
   font-family: inherit;
 }
-#pendingModal .btn-delete:hover { background: #b91c1c; }
+#pendingModal .btn-delete:hover { background: var(--red-700); }
 
 /* ========== STUDENT DETAIL MODAL ========== */
 .detail-modal { width: 90%; max-width: 800px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
@@ -2047,13 +2178,13 @@ body {
 .toast-success .toast-icon { background: linear-gradient(135deg, var(--green-500), var(--green-700)); }
 .toast-success .toast-progress { background: var(--green-500); }
 .toast-error { border-left-color: var(--red-500); }
-.toast-error .toast-icon { background: linear-gradient(135deg, var(--red-500), #c62828); }
+.toast-error .toast-icon { background: linear-gradient(135deg, var(--red-500), var(--red-800)); }
 .toast-error .toast-progress { background: var(--red-500); }
 .toast-warning { border-left-color: var(--amber-500); }
-.toast-warning .toast-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.toast-warning .toast-icon { background: linear-gradient(135deg, var(--amber-500), var(--amber-600)); }
 .toast-warning .toast-progress { background: var(--amber-500); }
 .toast-info { border-left-color: var(--blue-500); }
-.toast-info .toast-icon { background: linear-gradient(135deg, var(--blue-500), #1d4ed8); }
+.toast-info .toast-icon { background: linear-gradient(135deg, var(--blue-500), var(--blue-700)); }
 .toast-info .toast-progress { background: var(--blue-500); }
 .toast-loading { border-left-color: var(--neutral-500); }
 .toast-loading .toast-icon { background: linear-gradient(135deg, var(--neutral-600), var(--neutral-700)); }
@@ -2092,9 +2223,9 @@ body {
   box-shadow: 0 8px 24px rgba(0,0,0,0.15);
 }
 .ui-dialog-icon-success { background: linear-gradient(135deg, var(--green-500), var(--green-700)); }
-.ui-dialog-icon-error { background: linear-gradient(135deg, var(--red-500), #c62828); }
-.ui-dialog-icon-warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.ui-dialog-icon-info { background: linear-gradient(135deg, var(--blue-500), #1d4ed8); }
+.ui-dialog-icon-error { background: linear-gradient(135deg, var(--red-500), var(--red-800)); }
+.ui-dialog-icon-warning { background: linear-gradient(135deg, var(--amber-500), var(--amber-600)); }
+.ui-dialog-icon-info { background: linear-gradient(135deg, var(--blue-500), var(--blue-700)); }
 .ui-dialog-icon-confirm { background: linear-gradient(135deg, var(--green-600), var(--green-800)); }
 .ui-dialog-icon-loading { background: linear-gradient(135deg, var(--neutral-600), var(--neutral-800)); }
 .ui-dialog-title {
@@ -2130,15 +2261,47 @@ body {
 }
 .ui-dialog-cancel:hover { background: var(--neutral-200); color: var(--neutral-800); }
 
-/* Focus visibility for keyboard users */
+/* Focus visibility for keyboard users — contract §5 */
 .btn:focus-visible,
 .modal-close:focus-visible,
 .toast-close:focus-visible,
 .modal-table a:focus-visible,
-.profile-edit-btn:focus-visible {
+.profile-edit-btn:focus-visible,
+.nav-link:focus-visible,
+.dropdown-item:focus-visible,
+.hamburger-btn:focus-visible,
+.search-input:focus-visible,
+.filter-select:focus-visible,
+.section-select:focus-visible,
+.btn-toggle-pass:focus-visible,
+.btn-toggle-password:focus-visible,
+.btn-edit-inline:focus-visible,
+.btn-pdf:focus-visible,
+.btn-toggle-group:focus-visible,
+.btn-approve:focus-visible,
+.btn-save-members:focus-visible,
+.btn-add-section:focus-visible,
+.btn-add-confirm:focus-visible,
+.btn-add-cancel:focus-visible,
+.dev-fab:focus-visible,
+.section-edit-input:focus-visible,
+.inline-edit-input:focus-visible,
+.admin-member-input:focus-visible,
+.btn-inline-save:focus-visible,
+.btn-inline-cancel:focus-visible {
   outline: 2px solid var(--green-500);
   outline-offset: 2px;
 }
+/* Hidden radio input: show focus ring on the custom radio circle — contract §4.4 */
+.student-radio:focus-visible ~ .radio-circle {
+  outline: 2px solid var(--green-500);
+  outline-offset: 2px;
+}
+
+/* ========== Z-INDEX SCALE (documented — contract §6/§9) ==========
+   main/student header 50 | sidebar overlay 99 | sidebar 100
+   dev FAB 1500 | modal overlay 2000 | ui dialog overlay 2500
+   toast container 4000 | auth container 1000                       */
 
 /* ========== RESPONSIVE ========== */
 @media (max-width: 1200px) {
@@ -2217,7 +2380,7 @@ body {
   .account-table td { padding: 10px 12px; font-size: 13px; }
   .password-field { flex-wrap: wrap; }
 
-  .modal { width: 95vw; margin: 10px; border-radius: var(--radius-lg); }
+  .modal { width: 95vw; max-width: 95vw; margin: 10px; border-radius: var(--radius-lg); }
   .modal-body { padding: 16px; }
   .form-row { grid-template-columns: 1fr; }
   .delete-title { font-size: 22px; }
@@ -2390,7 +2553,9 @@ body {
   .btn-edit-inline { padding: 4px 8px; font-size: 11px; }
   .change-password-form { max-width: 100%; }
 
-  .modal { width: 98vw; margin: 5px; border-radius: var(--radius-lg); }
+  .modal { width: 98vw; max-width: 98vw; margin: 8px auto; border-radius: var(--radius-lg); }
+  /* Pending modal: reach 98vw at small screens — contract §2.5 */
+  #pendingModal .modal-content { width: 98vw; max-width: 98vw; }
   .modal-header { padding: 14px 16px; flex-wrap: wrap; gap: 6px; }
   .modal-header h3 { font-size: 16px; }
   .modal-body { padding: 14px; }
@@ -2670,7 +2835,7 @@ body {
   gap: 6px;
   padding: 6px 14px;
   border-radius: var(--radius-sm);
-  background: #dc2626;
+  background: var(--red-600);
   color: white;
   font-size: 12px;
   font-weight: 700;
@@ -2682,7 +2847,7 @@ body {
   transition: all var(--transition);
   white-space: nowrap;
 }
-.btn-pdf:hover { background: #b91c1c; transform: translateY(-1px); }
+.btn-pdf:hover { background: var(--red-700); transform: translateY(-1px); }
 .btn-pdf.btn-download { background: var(--green-700, #115c2e); border-color: var(--green-700, #115c2e); }
 .btn-pdf i { font-size: 14px; }
 .card-header .btn-pdf:first-child { margin-left: 12px; }
@@ -2691,6 +2856,52 @@ body {
 @media (max-width: 1024px) { .admin-card-header { flex-wrap: wrap; gap: 8px; } .admin-card-actions { gap: 8px; } .admin-member-inputs { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 768px) { .admin-member-inputs { grid-template-columns: 1fr; } .profile-hero-header { flex-direction: column; text-align: center; padding: 24px 20px; gap: 16px; } .profile-hero-header::before { display: none; } .profile-avatar-circle { width: 56px; height: 56px; font-size: 20px; } .profile-hero-text { align-items: center; } .profile-name-display { font-size: 24px; } .profile-detail-row { grid-template-columns: 140px 1fr auto; padding: 14px 20px; } .profile-detail-label { font-size: 10px; } .profile-detail-value { font-size: 13px; } .profile-edit-btn { min-height: 38px; } .account-card-header, .account-card-header-danger { padding: 12px 16px; } .admin-card-header { padding: 12px 14px; } .admin-card-actions { flex-wrap: wrap; gap: 6px; } .admin-total-score { font-size: 13px; } .admin-group-card, .admin-group-card:first-child, .admin-group-card:last-child { border-radius: var(--radius-md); } }
 @media (max-width: 480px) { .profile-hero-header { padding: 20px 16px; } .profile-avatar-circle { width: 48px; height: 48px; font-size: 18px; } .profile-name-display { font-size: 20px; letter-spacing: 1px; } .profile-role-pill, .profile-status-pill { font-size: 9px; padding: 3px 10px; } .profile-detail-row { grid-template-columns: 1fr; gap: 4px; padding: 10px 12px; position: relative; } .profile-detail-row .profile-edit-btn { position: absolute; right: 12px; top: 10px; } .profile-detail-label { font-size: 10px; letter-spacing: 0.5px; } .profile-detail-value { font-size: 12px; padding-right: 48px; } .admin-member-inputs { grid-template-columns: 1fr; } .admin-card-header { padding: 10px 12px; } .admin-card-title h4 { font-size: 14px; } .admin-card-body { padding: 10px 12px; } .admin-member-input { padding: 8px 10px; font-size: 12px; } .admin-total-score { font-size: 12px; } .btn-toggle-group { padding: 5px 10px; font-size: 10px; } .account-card-body { padding: 12px; } .account-card .btn-success, .account-card .btn-danger { width: 100%; text-align: center; } }
+
+/* ========== UTILITIES (contract §7) ========== */
+/* NOTE: .u-hidden intentionally does NOT use !important so that JS inline
+   style.display toggles (openModalOverlay, toggleStudentNameField, etc.)
+   can still override it. Inline styles always beat non-important classes. */
+.u-hidden { display: none; }
+.u-text-upper { text-transform: uppercase; }
+.u-full { width: 100%; }
+.u-flex-end { display: flex; justify-content: flex-end; gap: 10px; }
+.toolbar-actions { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.section-number-input { width: 100%; max-width: 100px; }
+
+/* Student-detail loading placeholder — contract §2.10 */
+.detail-loading { text-align: center; color: var(--neutral-400); padding: 40px; }
+.detail-loading i { font-size: 32px; }
+
+/* Skeleton placeholder — contract §2.10 (shimmer keyframe already exists) */
+.skeleton {
+  background: linear-gradient(90deg, var(--neutral-200) 25%, var(--neutral-100) 50%, var(--neutral-200) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ========== 320px FLOOR (contract §3.4) ==========
+   max-width extensions only; no behavior change at larger widths. */
+@media (max-width: 320px) {
+  .content-section { padding: 6px; }
+  .card-body { padding: 8px; }
+  .main-header { padding: 8px 10px; }
+  #sectionTitle { font-size: 15px; }
+  .profile-info { max-width: 100px; }
+  .student-content { padding: 8px; }
+  .student-header { padding: 8px 10px; }
+  .btn, .btn-edit-inline, .btn-toggle-password, .modal-close, .btn-rate-card,
+  .btn-toggle-group, .btn-back, .btn-logout-student, .btn-cancel, .btn-rate {
+    min-height: 44px;
+  }
+  .search-input, .filter-select { font-size: 12px; padding: 8px 10px; }
+  .modal { margin: 6px auto; }
+  #pendingModal .modal-content { width: 96vw; max-width: 96vw; }
+  .detail-modal { width: 96vw; }
+  .rubrics-table td { font-size: 10px; }
+  .radio-desc { font-size: 9px; }
+  .auth-card { max-width: 96vw; padding: 16px 12px; }
+}
 
 /* ========== REDUCED MOTION ========== */
 @media (prefers-reduced-motion: reduce) {
