@@ -773,7 +773,7 @@ function buildStudentRatingsHTML(ratings) {
 }
 
 async function exportStudentPDF() {
-    if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
+    if (!currentInstructor) { await showAlertDialog({ title: 'PDF Export', message: 'No instructor selected. Select an instructor first.', type: 'warning' }); return; }
     await loadLiveCriteria();
     const data = await Api.getStudentRatingsTable(currentInstructor, currentSection);
     if (data.status !== 'success') { showToast('Error loading ratings', 'error'); return; }
@@ -888,7 +888,7 @@ function buildRaterListHTML(raters) {
 }
 
 async function exportRaterListPDF() {
-    if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
+    if (!currentInstructor) { await showAlertDialog({ title: 'PDF Export', message: 'No instructor selected. Select an instructor first.', type: 'warning' }); return; }
     await loadLiveCriteria();
     const data = await Api.getRaterList(currentInstructor, currentSection);
     if (data.status !== 'success') { showToast('Error loading rater list', 'error'); return; }
@@ -1248,10 +1248,11 @@ async function drawRaterListPDF(doc, raters) {
 }
 
 async function downloadStudentPDF() {
-    if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
+    if (!currentInstructor) { await showAlertDialog({ title: 'PDF Export', message: 'No instructor selected. Select an instructor first.', type: 'warning' }); return; }
     if (!window.jspdf) { showToast('PDF library not loaded yet. Check your connection and try again.', 'error'); return; }
     const { jsPDF } = window.jspdf;
     await withPdfLock(async function () {
+        const loading = showLoadingDialog('Generating PDF...');
         try {
             await loadLiveCriteria();
             const data = await Api.getStudentRatingsTable(currentInstructor, currentSection);
@@ -1263,15 +1264,18 @@ async function downloadStudentPDF() {
         } catch (e) {
             console.error('PDF download error:', e);
             showToast('Failed to generate PDF. Try again.', 'error');
+        } finally {
+            loading.close();
         }
     });
 }
 
 async function downloadRaterListPDF() {
-    if (!currentInstructor) { alert('No instructor selected. Select an instructor first.'); return; }
+    if (!currentInstructor) { await showAlertDialog({ title: 'PDF Export', message: 'No instructor selected. Select an instructor first.', type: 'warning' }); return; }
     if (!window.jspdf) { showToast('PDF library not loaded yet. Check your connection and try again.', 'error'); return; }
     const { jsPDF } = window.jspdf;
     await withPdfLock(async function () {
+        const loading = showLoadingDialog('Generating PDF...');
         try {
             await loadLiveCriteria();
             const data = await Api.getRaterList(currentInstructor, currentSection);
@@ -1283,6 +1287,8 @@ async function downloadRaterListPDF() {
         } catch (e) {
             console.error('PDF download error:', e);
             showToast('Failed to generate PDF. Try again.', 'error');
+        } finally {
+            loading.close();
         }
     });
 }
@@ -1306,7 +1312,7 @@ const CRITERIA_KEYS = Object.keys(CRITERIA_LABELS);
 function openStudentDetail(name, e) {
     e.preventDefault();
     document.getElementById('detailStudentName').textContent = name;
-    document.getElementById('studentDetailModal').style.display = 'flex';
+    openModalOverlay(document.getElementById('studentDetailModal'));
     document.getElementById('studentDetailContent').innerHTML = '<p style="text-align:center;color:var(--neutral-400);padding:40px;"><i class="fas fa-spinner fa-spin" style="font-size:32px;"></i></p>';
     document.getElementById('noStudentDetail').style.display = 'none';
     loadStudentDetail(name);
@@ -1314,7 +1320,7 @@ function openStudentDetail(name, e) {
 
 function closeStudentDetail(e) {
     if (e && e.target !== e.currentTarget) return;
-    document.getElementById('studentDetailModal').style.display = 'none';
+    closeModalOverlay(document.getElementById('studentDetailModal'));
 }
 
 async function loadStudentDetail(name) {
@@ -1498,7 +1504,8 @@ async function saveSectionRow(oldName) {
 }
 
 async function deleteSectionRow(sectionName) {
-    if (!confirm('Delete section "' + sectionName + '" and all its data? This cannot be undone.')) return;
+    const confirmed = await showConfirmDialog({ title: 'Delete Section', message: 'Delete section "' + sectionName + '" and all its data? This cannot be undone.', type: 'warning', confirmText: 'Delete', cancelText: 'Cancel', danger: true });
+    if (!confirmed) return;
     try {
         const data = await Api.deleteSection(currentInstructor, sectionName);
         if (data.status === 'success') {
@@ -1647,7 +1654,8 @@ async function saveCriterionRow(id) {
 async function deleteCriterionRow(id) {
     if (liveCriteria.length <= 1) { showToast('At least one criterion is required.', 'error'); return; }
     const c = liveCriteria.find(x => x.id === id);
-    if (!confirm('Delete criterion "' + (c ? c.name : id) + '"? This cannot be undone.')) return;
+    const confirmed = await showConfirmDialog({ title: 'Delete Criterion', message: 'Delete criterion "' + (c ? c.name : id) + '"? This cannot be undone.', type: 'warning', confirmText: 'Delete', cancelText: 'Cancel', danger: true });
+    if (!confirmed) return;
     try {
         const data = await Api.deleteCriterion(id);
         if (data.status === 'success') {
@@ -1790,13 +1798,13 @@ async function handleToggleGroupStatus(groupName) {
 
 // ========== PENDING ACCOUNTS ==========
 function openPendingModal() {
-    document.getElementById('pendingModal').style.display = 'flex';
+    openModalOverlay(document.getElementById('pendingModal'));
     loadPendingAccounts();
 }
 
 function closePendingModal(e) {
     if (e && e.target !== e.currentTarget) return;
-    document.getElementById('pendingModal').style.display = 'none';
+    closeModalOverlay(document.getElementById('pendingModal'));
 }
 
 async function loadPendingAccounts() {
@@ -1862,7 +1870,8 @@ async function approveAccount(id) {
 }
 
 async function deletePendingAccount(id) {
-    if (!confirm('Delete this pending account?')) return;
+    const confirmed = await showConfirmDialog({ title: 'Delete Account', message: 'Delete this pending account? This cannot be undone.', type: 'warning', confirmText: 'Delete', cancelText: 'Cancel', danger: true });
+    if (!confirmed) return;
     try {
         const data = await Api.deleteAccount(id);
         if (data.status === 'success') {
@@ -1880,23 +1889,28 @@ async function deletePendingAccount(id) {
 // ========== RESET RATINGS ==========
 function handleResetRatings() {
     document.getElementById('resetConfirmName').value = '';
-    document.getElementById('resetModal').style.display = 'flex';
+    openModalOverlay(document.getElementById('resetModal'), '#resetConfirmName');
 }
 
 function closeResetModal(e) {
     if (e && e.target !== e.currentTarget) return;
-    document.getElementById('resetModal').style.display = 'none';
+    closeModalOverlay(document.getElementById('resetModal'));
 }
 
 // ========== DEVELOPER DETAILS MODAL ==========
 function openDeveloperModal(e) {
     if (e) e.preventDefault();
-    document.getElementById('developerModal').classList.add('dev-open');
+    rememberFocus();
+    const el = document.getElementById('developerModal');
+    el.classList.add('dev-open');
+    const closeBtn = el.querySelector('.modal-close');
+    if (closeBtn) setTimeout(() => closeBtn.focus(), 40);
 }
 
 function closeDeveloperModal(e) {
     if (e && e.target !== e.currentTarget) return;
     document.getElementById('developerModal').classList.remove('dev-open');
+    restoreFocus();
 }
 
 async function confirmResetRatings() {
@@ -1906,6 +1920,7 @@ async function confirmResetRatings() {
         return;
     }
 
+    const loading = showLoadingDialog('Deleting all ratings...');
     try {
         const data = await Api.resetRatings(typedName, sessionStorage.getItem('accountUsername') || '');
         if (data.status === 'success') {
@@ -1918,6 +1933,8 @@ async function confirmResetRatings() {
         }
     } catch (e) {
         showToast('Network error', 'error');
+    } finally {
+        loading.close();
     }
 }
 
@@ -2059,15 +2076,230 @@ async function saveEditPassword() {
     }
 }
 
-function showToast(message, type = 'info') {
-    let toast = document.getElementById('customToast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'customToast';
-        toast.className = 'toast';
-        document.body.appendChild(toast);
-    }
-    toast.className = `toast show toast-${type}`;
-    toast.innerHTML = `<div class="toast-content"><span class="toast-message">${message}</span></div>`;
-    setTimeout(() => { toast.className = 'toast'; }, 3000);
+// ========== UNIFIED POPUP / MESSAGE SYSTEM ==========
+const UI_ICONS = {
+    success: 'fa-check-circle',
+    error: 'fa-times-circle',
+    warning: 'fa-exclamation-triangle',
+    info: 'fa-info-circle',
+    confirm: 'fa-question-circle',
+    loading: 'fa-spinner'
+};
+
+let _lastFocusedElement = null;
+let _activeLoadingToast = null;
+
+function rememberFocus() {
+    _lastFocusedElement = document.activeElement;
 }
+
+function restoreFocus() {
+    if (_lastFocusedElement && typeof _lastFocusedElement.focus === 'function') {
+        try { _lastFocusedElement.focus(); } catch (e) {}
+    }
+    _lastFocusedElement = null;
+}
+
+function getToastContainer() {
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container';
+        container.setAttribute('aria-live', 'polite');
+        container.setAttribute('aria-atomic', 'false');
+        document.body.appendChild(container);
+    }
+    return container;
+}
+
+function showToast(message, type = 'info', duration = 3800) {
+    const container = getToastContainer();
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    const icon = UI_ICONS[type] || UI_ICONS.info;
+    toast.innerHTML =
+        '<div class="toast-icon"><i class="fas ' + icon + (type === 'loading' ? ' fa-spin' : '') + '"></i></div>' +
+        '<div class="toast-content"><span class="toast-message"></span></div>' +
+        '<button type="button" class="toast-close" aria-label="Dismiss notification"><i class="fas fa-times"></i></button>' +
+        (type === 'loading' ? '' : '<div class="toast-progress"></div>');
+    toast.querySelector('.toast-message').textContent = String(message == null ? '' : message);
+
+    container.appendChild(toast);
+    while (container.children.length > 5) container.removeChild(container.firstChild);
+
+    let timer = null;
+    const dismiss = () => {
+        if (toast.classList.contains('toast-hide')) return;
+        toast.classList.add('toast-hide');
+        setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+    };
+
+    toast.querySelector('.toast-close').addEventListener('click', dismiss);
+
+    if (type !== 'loading') {
+        toast.style.setProperty('--toast-duration', duration + 'ms');
+        const progress = toast.querySelector('.toast-progress');
+        const startTimer = () => { clearTimeout(timer); timer = setTimeout(dismiss, duration); };
+        startTimer();
+        toast.addEventListener('mouseenter', () => {
+            clearTimeout(timer);
+            if (progress) progress.style.animationPlayState = 'paused';
+        });
+        toast.addEventListener('mouseleave', () => {
+            if (progress) progress.style.animationPlayState = 'running';
+            startTimer();
+        });
+    }
+
+    return { toast: toast, close: dismiss };
+}
+
+// Persistent "loading" toast for background operations.
+function showLoadingToast(message) {
+    if (_activeLoadingToast) _activeLoadingToast.close();
+    _activeLoadingToast = showToast(message, 'loading');
+    return _activeLoadingToast;
+}
+
+function hideLoadingToast() {
+    if (_activeLoadingToast) {
+        _activeLoadingToast.close();
+        _activeLoadingToast = null;
+    }
+}
+
+// --- Shared modal-overlay helpers (static modals) ---
+function openModalOverlay(el, focusSelector) {
+    if (!el) return;
+    rememberFocus();
+    el.style.display = 'flex';
+    const target = focusSelector
+        ? el.querySelector(focusSelector)
+        : el.querySelector('.modal-close, input:not([type="hidden"]), select, button');
+    if (target) setTimeout(() => target.focus(), 40);
+}
+
+function closeModalOverlay(el) {
+    if (!el) return;
+    el.style.display = 'none';
+    restoreFocus();
+}
+
+// --- UI Dialog engine (alert / confirm / loading) ---
+function _buildUiDialog(type, title, message, buttons) {
+    const overlay = document.createElement('div');
+    overlay.className = 'ui-dialog-overlay';
+    const icon = UI_ICONS[type] || UI_ICONS.info;
+    overlay.innerHTML =
+        '<div class="ui-dialog" role="dialog" aria-modal="true" aria-label="' + escHtml(title || 'Dialog') + '">' +
+            '<div class="ui-dialog-icon ui-dialog-icon-' + type + '"><i class="fas ' + icon + (type === 'loading' ? ' fa-spin' : '') + '"></i></div>' +
+            '<h3 class="ui-dialog-title"></h3>' +
+            '<p class="ui-dialog-message"></p>' +
+            '<div class="ui-dialog-actions"></div>' +
+        '</div>';
+    overlay.querySelector('.ui-dialog-title').textContent = title;
+    overlay.querySelector('.ui-dialog-message').textContent = message;
+    const actions = overlay.querySelector('.ui-dialog-actions');
+    buttons.forEach(btn => actions.appendChild(btn));
+    document.body.appendChild(overlay);
+    return overlay;
+}
+
+function _dialogButton(label, className, onClick) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn ' + className;
+    btn.textContent = label;
+    btn.addEventListener('click', onClick);
+    return btn;
+}
+
+function _trapFocus(overlay, e) {
+    if (e.key !== 'Tab') return;
+    const focusables = Array.from(overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'));
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+
+function _closeDialog(overlay, onClosed) {
+    overlay.classList.add('ui-dialog-closing');
+    setTimeout(() => {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        if (onClosed) onClosed();
+    }, 200);
+}
+
+function showAlertDialog({ title = '', message = '', type = 'info', confirmText = 'OK', dismissible = true } = {}) {
+    return new Promise(resolve => {
+        rememberFocus();
+        let closed = false;
+        const okBtn = _dialogButton(confirmText, 'btn-success', () => close());
+        const overlay = _buildUiDialog(type, title, message, [okBtn]);
+        const close = () => {
+            if (closed) return;
+            closed = true;
+            document.removeEventListener('keydown', onKey);
+            _closeDialog(overlay, () => { restoreFocus(); resolve(); });
+        };
+        const onKey = e => {
+            if (e.key === 'Escape') { e.preventDefault(); close(); }
+            else _trapFocus(overlay, e);
+        };
+        overlay.addEventListener('click', e => { if (dismissible && e.target === overlay) close(); });
+        document.addEventListener('keydown', onKey);
+        setTimeout(() => okBtn.focus(), 30);
+    });
+}
+
+function showConfirmDialog({ title = 'Are you sure?', message = '', type = 'warning', confirmText = 'Confirm', cancelText = 'Cancel', danger = false, dismissible = false } = {}) {
+    return new Promise(resolve => {
+        rememberFocus();
+        let closed = false;
+        const confirmBtn = _dialogButton(confirmText, danger ? 'btn-danger' : 'btn-success', () => close(true));
+        const cancelBtn = _dialogButton(cancelText, 'ui-dialog-cancel', () => close(false));
+        const overlay = _buildUiDialog(type, title, message, [cancelBtn, confirmBtn]);
+        const close = result => {
+            if (closed) return;
+            closed = true;
+            document.removeEventListener('keydown', onKey);
+            _closeDialog(overlay, () => { restoreFocus(); resolve(result); });
+        };
+        const onKey = e => {
+            if (e.key === 'Escape') { e.preventDefault(); close(false); }
+            else _trapFocus(overlay, e);
+        };
+        overlay.addEventListener('click', e => { if (dismissible && e.target === overlay) close(false); });
+        document.addEventListener('keydown', onKey);
+        setTimeout(() => confirmBtn.focus(), 30);
+    });
+}
+
+function showLoadingDialog(message = 'Please wait...') {
+    const overlay = _buildUiDialog('loading', '', message, []);
+    overlay.querySelector('.ui-dialog-title').style.display = 'none';
+    overlay.querySelector('.ui-dialog-actions').style.display = 'none';
+    return {
+        close() {
+            if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        }
+    };
+}
+
+// --- Escape key closes the topmost static modal ---
+document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (document.querySelector('.ui-dialog-overlay')) return; // ui-dialog handles its own Esc
+    const overlays = Array.from(document.querySelectorAll('.modal-overlay')).filter(el => {
+        const st = window.getComputedStyle(el);
+        return st.display !== 'none' && st.visibility !== 'hidden';
+    });
+    if (!overlays.length) return;
+    const top = overlays[overlays.length - 1];
+    const closeBtn = top.querySelector('.modal-close');
+    if (closeBtn) closeBtn.click();
+});
