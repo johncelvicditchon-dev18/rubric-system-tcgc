@@ -53,6 +53,7 @@ function clearFieldError(input) {
     if (!group) return;
     group.classList.remove('has-error');
     input.removeAttribute('aria-invalid');
+    if (input.id) input.removeAttribute('aria-describedby');
     const err = group.querySelector('.form-error');
     if (err) err.textContent = '';
 }
@@ -281,8 +282,8 @@ async function handleLogin(e) {
 
         if (!username || !password) {
             showToast('Please fill in all fields', 'error');
-            setFieldError(document.getElementById('loginUsername'), 'Username is required');
-            setFieldError(document.getElementById('loginPassword'), 'Password is required');
+            if (!username) setFieldError(document.getElementById('loginUsername'), 'Username is required');
+            if (!password) setFieldError(document.getElementById('loginPassword'), 'Password is required');
             return;
         }
         clearFieldError(document.getElementById('loginUsername'));
@@ -425,12 +426,14 @@ async function showInstructorDashboard() {
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
+    const hamburger = document.querySelector('.hamburger-btn');
     const isMobile = window.matchMedia('(max-width: 768px)').matches || window.innerWidth <= 768;
     if (isMobile) {
         const opening = !sidebar.classList.contains('open');
         sidebar.classList.toggle('open');
         overlay.classList.toggle('show');
         sidebar.style.transform = opening ? 'translateX(0)' : 'translateX(-100%)';
+        if (hamburger) hamburger.setAttribute('aria-expanded', sidebar.classList.contains('open') ? 'true' : 'false');
         // Move focus into the sidebar when it opens on mobile — contract §4.3
         if (opening) {
             const firstNav = sidebar.querySelector('.nav-link');
@@ -1968,7 +1971,7 @@ async function loadPendingCount() {
 }
 
 async function approveAccount(id) {
-    const confirmed = await showConfirmDialog({ title: 'Approve Account', message: 'Approve this pending instructor account? They will be able to log in immediately.', type: 'warning', confirmText: 'Approve', cancelText: 'Cancel' });
+    const confirmed = await showConfirmDialog({ title: 'Approve Account', message: 'Approve this pending instructor account? They will be able to log in immediately.', type: 'info', confirmText: 'Approve', cancelText: 'Cancel' });
     if (!confirmed) return;
     try {
         const data = await Api.approveAccount(id);
@@ -2299,6 +2302,7 @@ function hideLoadingToast() {
 // --- Shared modal-overlay helpers (static modals) ---
 function openModalOverlay(el, focusSelector) {
     if (!el) return;
+    if (el._closeTimer) { clearTimeout(el._closeTimer); el._closeTimer = null; }
     rememberFocus();
     el.classList.remove('closing');
     el.style.display = 'flex';
@@ -2318,7 +2322,8 @@ function closeModalOverlay(el) {
     if (el.classList.contains('closing')) return;
     // Play the scale-out exit animation, then hide — contract §2.5
     el.classList.add('closing');
-    setTimeout(function () {
+    const hide = function () {
+        el._closeTimer = null;
         el.style.display = 'none';
         el.classList.remove('closing');
         if (el._trapFn) {
@@ -2326,7 +2331,13 @@ function closeModalOverlay(el) {
             el._trapFn = null;
         }
         restoreFocus();
-    }, 200);
+    };
+    // Skip the exit-animation delay under prefers-reduced-motion — a11y
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        hide();
+        return;
+    }
+    el._closeTimer = setTimeout(hide, 200);
 }
 
 // --- UI Dialog engine (alert / confirm / loading) ---

@@ -1639,6 +1639,7 @@ body {
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
+.btn-loading i { display: none; }
 .btn-sm { padding: 4px 10px; font-size: 11px; min-height: 28px; }
 .btn-sm i { font-size: 11px; }
 
