@@ -303,8 +303,8 @@ body {
 
 .student-header-right { display: flex; align-items: center; gap: 16px; }
 
-.student-profile { display: flex; align-items: center; gap: 10px; color: white; font-weight: 600; font-size: 14px; }
-.student-profile .profile-name { color: white; }
+.student-profile { display: flex; align-items: center; gap: 10px; color: white; font-weight: 600; font-size: 14px; min-width: 0; }
+.student-profile .profile-name { color: white; max-width: 180px; }
 .profile-avatar {
   width: 38px; height: 38px; background: var(--neutral-200);
   border-radius: 50%;
@@ -984,9 +984,9 @@ body {
   border: 1px solid transparent;
 }
 .profile-trigger:hover { background: var(--neutral-50); border-color: var(--neutral-200); }
-.profile-info { display: flex; flex-direction: column; text-align: right; }
-.profile-name { font-weight: 700; font-size: 13px; color: var(--neutral-800); }
-.profile-role { font-size: 11px; color: var(--neutral-600); text-transform: uppercase; letter-spacing: 0.5px; }
+.profile-info { display: flex; flex-direction: column; text-align: right; min-width: 0; max-width: 200px; }
+.profile-name { font-weight: 700; font-size: 13px; color: var(--neutral-800); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.profile-role { font-size: 11px; color: var(--neutral-600); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
 .dropdown-arrow {
   font-size: 11px;
   color: var(--neutral-500);
@@ -1026,13 +1026,21 @@ body {
   color: white; font-size: 16px;
   flex-shrink: 0;
 }
-.dropdown-name { font-weight: 700; font-size: 14px; color: var(--neutral-800); line-height: 1.2; }
+.dropdown-user-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dropdown-name { font-weight: 700; font-size: 14px; color: var(--neutral-800); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dropdown-role {
   font-size: 11px;
   color: var(--neutral-500);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   display: block;
+  white-space: nowrap;
 }
 .dropdown-divider { height: 1px; background: var(--neutral-100); }
 
@@ -2149,6 +2157,7 @@ body {
 }
 
 @media (max-width: 768px) {
+  .profile-info { max-width: 150px; }
   .sidebar {
     transform: translateX(-100%);
     width: 280px;
@@ -2341,6 +2350,7 @@ body {
   .hamburger-btn { font-size: 18px; padding: 4px 8px; }
 
   .profile-trigger { padding: 4px 6px; }
+  .profile-info { max-width: 120px; }
   .profile-name { font-size: 11px; }
   .profile-role { font-size: 10px; }
   .dropdown-menu { min-width: 180px; right: -5px; }
