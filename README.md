@@ -83,11 +83,11 @@ The recent overhaul established a token-based design system across `styles.css` 
 | **Dialogs** | `showAlertDialog({title, message, type})`, `showConfirmDialog({title, message, type, danger})`, `showLoadingDialog(message)` -- all return Promises, use focus trap + Escape to dismiss. No native `confirm()`. |
 | **Modal overlays** | `openModalOverlay(el, focusSelector)` / `closeModalOverlay(el)` -- manages `display:flex`, focus trap, exit animation (`closing` class), respects `prefers-reduced-motion`. |
 | **Reduced motion** | `@media (prefers-reduced-motion: reduce)` at end of `styles.css` kills all animations/transitions; JS checks `window.matchMedia('(prefers-reduced-motion: reduce)')` before animation delays. |
-| **Cache-bust** | Asset URLs use `?v=N` convention. Current versions: `styles.css?v=10`, `script.js?v=30`, `firestore-api.js?v=7`. Bump on every deploy-affecting change. |
+| **Cache-bust** | Asset URLs use `?v=N` convention. Current versions: `styles.css?v=10`, `script.js?v=30`. Bump on every deploy-affecting change. |
 
 ## Roles & Usage Flows
 
-- **Instructor login/signup** -- Sign up with full name + username + password; account enters pending status and 10 empty group rows (GROUP 1-10) are auto-created. An approved instructor approves it from Account > Pending Accounts. Approved instructors log in with username + password.
+- **Instructor login/signup** -- Sign up with full name + username + password; account enters pending status. An approved instructor approves it from Account > Pending Accounts. Approved instructors log in with username + password.
 - **Student login** -- Select section from dropdown, enter rater name (e.g., `DELA CRUZ, JUAN C.`). No password required. Students see only their section's groups.
 - **Rating flow** -- Students select a group from the grid, rate each rubric criterion via radio buttons (1-4), see running total, submit. Locked groups show read-only view of previous rating.
 - **PDF exports** -- Instructors can print or download PDF for Student Ratings and Rater List views (requires jsPDF loaded from CDN).
