@@ -2039,8 +2039,10 @@ async function loadApprovedAccounts() {
                 const tdAction = document.createElement('td');
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'btn-delete';
-                btn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                btn.className = 'btn-delete-icon';
+                btn.setAttribute('aria-label', 'Delete ' + a.username);
+                btn.setAttribute('title', 'Delete account');
+                btn.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i>';
                 btn.addEventListener('click', () => deleteApprovedAccount(a.id, a.username));
                 tdAction.appendChild(btn);
 

@@ -1976,6 +1976,79 @@ body {
 }
 #pendingModal .btn-delete:hover { background: var(--red-700); }
 
+/* ========== APPROVED ACCOUNTS MODAL ========== */
+#approvedModal .modal-content {
+  background: white;
+  border-radius: var(--radius-xl);
+  width: 90%;
+  max-width: 640px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+  animation: scaleIn 0.3s ease;
+}
+#approvedModal .modal-header {
+  padding: 20px 24px;
+  border-bottom: 2px solid var(--neutral-100);
+  background: linear-gradient(135deg, var(--green-700), var(--green-600));
+  color: white;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+#approvedModal .modal-header h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 2px;
+  color: white;
+}
+#approvedModal .modal-close {
+  color: rgba(255,255,255,0.6);
+}
+#approvedModal .modal-close:hover { color: white; background: rgba(255,255,255,0.1); }
+#approvedModal .modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+/* Fix monospace inheritance on Actions column (3rd child) */
+#approvedModal .modal-table td:nth-child(3) {
+  font-family: inherit;
+  letter-spacing: normal;
+}
+
+/* Icon-only delete button */
+#approvedModal .btn-delete-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--red-600);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all var(--transition);
+  font-family: inherit;
+  line-height: 1;
+}
+#approvedModal .btn-delete-icon:hover {
+  background: var(--red-700);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220,38,38,0.3);
+}
+#approvedModal .btn-delete-icon:active {
+  background: var(--red-800);
+  transform: translateY(0);
+  box-shadow: none;
+}
+#approvedModal .btn-delete-icon:focus-visible {
+  outline: 2px solid var(--red-500);
+  outline-offset: 2px;
+}
+
 /* ========== STUDENT DETAIL MODAL ========== */
 .detail-modal { width: 90%; max-width: 800px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
 #studentDetailModal .modal-body { padding: 20px 24px; }
@@ -2289,7 +2362,8 @@ body {
 .inline-edit-input:focus-visible,
 .admin-member-input:focus-visible,
 .btn-inline-save:focus-visible,
-.btn-inline-cancel:focus-visible {
+.btn-inline-cancel:focus-visible,
+.btn-delete-icon:focus-visible {
   outline: 2px solid var(--green-500);
   outline-offset: 2px;
 }
@@ -2586,6 +2660,11 @@ body {
   #pendingModal .modal-header { border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 14px 16px; }
   #pendingModal .modal-header h3 { font-size: 16px; }
   #pendingModal .modal-body { padding: 14px; }
+  #approvedModal .modal-content { border-radius: var(--radius-lg); }
+  #approvedModal .modal-header { border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 14px 16px; }
+  #approvedModal .modal-header h3 { font-size: 16px; }
+  #approvedModal .modal-body { padding: 14px; }
+  #approvedModal .btn-delete-icon { width: 40px; height: 40px; font-size: 16px; border-radius: var(--radius-lg); }
   .modal-table td { padding: 8px 4px; font-size: 11px; }
   .modal-table th { font-size: 9px; padding: 8px 4px; }
   .btn-approve, #pendingModal .btn-delete { padding: 4px 10px; font-size: 10px; }
@@ -2757,6 +2836,7 @@ body {
 
   .modal-header h3 { font-size: 14px; }
   #pendingModal .modal-header h3 { font-size: 14px; }
+  #approvedModal .modal-header h3 { font-size: 14px; }
 
   .delete-title { font-size: 18px; }
   .admin-card-title h4 { font-size: 13px; }
@@ -2898,6 +2978,7 @@ body {
   .search-input, .filter-select { font-size: 12px; padding: 8px 10px; }
   .modal { margin: 6px auto; }
   #pendingModal .modal-content { width: 96vw; max-width: 96vw; }
+  #approvedModal .modal-content { width: 96vw; max-width: 96vw; }
   .detail-modal { width: 96vw; }
   .rubrics-table td { font-size: 10px; }
   .radio-desc { font-size: 9px; }
