@@ -2026,15 +2026,29 @@ async function loadApprovedAccounts() {
         if (data.status === 'success' && data.accounts && data.accounts.length > 0) {
             table.style.display = 'table';
             noData.style.display = 'none';
-            tbody.innerHTML = data.accounts.map(a => `
-                <tr>
-                    <td>${a.instructor_name}</td>
-                    <td>${a.username}</td>
-                    <td>
-                        <button class="btn-delete" onclick="deleteApprovedAccount('${a.id}', '${a.username}')"><i class="fas fa-trash"></i> Delete</button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = '';
+            data.accounts.forEach(a => {
+                const tr = document.createElement('tr');
+
+                const tdInstructor = document.createElement('td');
+                tdInstructor.textContent = a.instructor_name;
+
+                const tdUsername = document.createElement('td');
+                tdUsername.textContent = a.username;
+
+                const tdAction = document.createElement('td');
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn-delete';
+                btn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                btn.addEventListener('click', () => deleteApprovedAccount(a.id, a.username));
+                tdAction.appendChild(btn);
+
+                tr.appendChild(tdInstructor);
+                tr.appendChild(tdUsername);
+                tr.appendChild(tdAction);
+                tbody.appendChild(tr);
+            });
         } else {
             table.style.display = 'none';
             noData.style.display = 'block';
@@ -2077,6 +2091,7 @@ async function deleteApprovedAccount(id, username) {
                 currentUserName = null;
                 currentInstructor = null;
                 currentStudentGroup = null;
+                currentStudentSection = null;
                 closeApprovedModal();
                 showToast('Your account was deleted. Please log in again.', 'info');
                 document.getElementById('authContainer').style.display = 'flex';
