@@ -192,6 +192,17 @@
                 </div>
             </div>
 
+            <div class="card account-card">
+                <div class="card-header account-card-header">
+                    <h3><i class="fas fa-user-check"></i> APPROVED ACCOUNTS</h3>
+                    <span class="pending-count-badge u-hidden" id="approvedCount">0</span>
+                </div>
+                <div class="card-body account-card-body">
+                    <p class="account-card-desc">Manage approved instructor accounts.</p>
+                    <button class="btn btn--neutral" id="btnOpenApprovedModal" onclick="openApprovedModal()"><i class="fas fa-user-check"></i> Manage Approved Accounts</button>
+                </div>
+            </div>
+
             <div class="card account-card account-card-danger">
                 <div class="card-header account-card-header-danger">
                     <h3><i class="fas fa-exclamation-triangle"></i> DANGER ZONE</h3>
@@ -217,6 +228,25 @@
                         <table id="pendingAccountsTable" class="modal-table u-hidden">
                             <thead><tr><th>Name</th><th>Username</th><th>Actions</th></tr></thead>
                             <tbody id="pendingAccountsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Approved Accounts Modal -->
+        <div id="approvedModal" class="modal-overlay u-hidden" onclick="closeApprovedModal(event)" role="dialog" aria-modal="true" aria-labelledby="approvedModalTitle">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3 id="approvedModalTitle"><i class="fas fa-user-check"></i> APPROVED ACCOUNTS</h3>
+                    <button class="modal-close" onclick="closeApprovedModal()" aria-label="Close dialog"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p class="no-data" id="noApprovedAccounts"><i class="fas fa-inbox"></i> No approved accounts.</p>
+                    <div class="table-wrap">
+                        <table id="approvedAccountsTable" class="modal-table u-hidden">
+                            <thead><tr><th>Instructor Name</th><th>Username</th><th>Actions</th></tr></thead>
+                            <tbody id="approvedAccountsBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -432,8 +462,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="assets/js/firebase-init.js?v=2"></script>
-    <script src="assets/js/firestore-api.js?v=7"></script>
+    <script src="assets/js/firestore-api.js?v=8"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js" integrity="sha384-qovJwSBbRDPP5cEjCp8S0UP66wrvnjaa60XMOGzTNanrThcrGfXfnZkvgY8N1KT3" crossorigin="anonymous" defer></script>
-    <script src="assets/js/script.js?v=30"></script>
+    <script src="assets/js/script.js?v=31"></script>
 </body>
 </html>

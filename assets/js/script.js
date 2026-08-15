@@ -420,6 +420,7 @@ async function showInstructorDashboard() {
     await restoreSectionState();
     showSection('studentList', document.querySelector('.nav-link[data-section="studentList"]'), { preventDefault: () => {}, stopPropagation: () => {} });
     loadPendingCount(); // fire-and-forget
+    loadApprovedCount(); // fire-and-forget
 }
 
 // ========== SIDEBAR TOGGLE ==========
@@ -1996,6 +1997,92 @@ async function deletePendingAccount(id) {
             showToast(data.message, 'success');
             loadPendingAccounts();
             loadPendingCount();
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch (e) {
+        showToast('Network error', 'error');
+    }
+}
+
+// ========== APPROVED ACCOUNTS ==========
+function openApprovedModal() {
+    openModalOverlay(document.getElementById('approvedModal'));
+    loadApprovedAccounts();
+}
+
+function closeApprovedModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    closeModalOverlay(document.getElementById('approvedModal'));
+}
+
+async function loadApprovedAccounts() {
+    try {
+        const data = await Api.getApprovedAccounts();
+        const tbody = document.getElementById('approvedAccountsBody');
+        const table = document.getElementById('approvedAccountsTable');
+        const noData = document.getElementById('noApprovedAccounts');
+
+        if (data.status === 'success' && data.accounts && data.accounts.length > 0) {
+            table.style.display = 'table';
+            noData.style.display = 'none';
+            tbody.innerHTML = data.accounts.map(a => `
+                <tr>
+                    <td>${a.instructor_name}</td>
+                    <td>${a.username}</td>
+                    <td>
+                        <button class="btn-delete" onclick="deleteApprovedAccount('${a.id}', '${a.username}')"><i class="fas fa-trash"></i> Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            table.style.display = 'none';
+            noData.style.display = 'block';
+        }
+    } catch (e) {
+        console.error('Error loading approved accounts:', e);
+    }
+}
+
+async function loadApprovedCount() {
+    try {
+        const data = await Api.getApprovedAccounts();
+        const badge = document.getElementById('approvedCount');
+        if (data.status === 'success' && data.accounts && data.accounts.length > 0) {
+            if (badge) {
+                badge.textContent = data.accounts.length;
+                badge.style.display = 'inline-block';
+            }
+        } else {
+            if (badge) badge.style.display = 'none';
+        }
+    } catch (e) {
+        const badge = document.getElementById('approvedCount');
+        if (badge) badge.style.display = 'none';
+    }
+}
+
+async function deleteApprovedAccount(id, username) {
+    const confirmed = await showConfirmDialog({ title: 'Delete Account', message: 'Delete this approved instructor account and ALL of its data (groups, ratings, sections)? This cannot be undone.', type: 'warning', confirmText: 'Delete', cancelText: 'Cancel', danger: true });
+    if (!confirmed) return;
+    try {
+        const data = await Api.deleteAccount(id);
+        if (data.status === 'success') {
+            showToast(data.message, 'success');
+            loadApprovedAccounts();
+            loadApprovedCount();
+            if (username && username === sessionStorage.getItem('accountUsername')) {
+                sessionStorage.clear();
+                currentUserRole = null;
+                currentUserName = null;
+                currentInstructor = null;
+                currentStudentGroup = null;
+                closeApprovedModal();
+                showToast('Your account was deleted. Please log in again.', 'info');
+                document.getElementById('authContainer').style.display = 'flex';
+                document.getElementById('dashboard').style.display = 'none';
+                document.getElementById('studentDashboard').style.display = 'none';
+            }
         } else {
             showToast(data.message, 'error');
         }
