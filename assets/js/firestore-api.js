@@ -242,6 +242,12 @@ const Api = (() => {
             return { status: 'success', accounts: docs.map(d => ({ id: d.id, instructor_name: d.instructor_name, username: d.username })) };
         },
 
+        async getApprovedAccounts() {
+            const docs = await queryWhere(COLL_ACCOUNTS, [['status', '==', 'approved']]);
+            docs.sort((a, b) => (a.id < b.id ? -1 : 1));
+            return { status: 'success', accounts: docs.map(d => ({ id: d.id, instructor_name: d.instructor_name, username: d.username })) };
+        },
+
         async approveAccount(id) {
             const doc = await db.collection(COLL_ACCOUNTS).doc(id).get();
             if (!doc.exists) return { status: 'error', message: 'Account not found or already approved' };
@@ -251,10 +257,11 @@ const Api = (() => {
 
         async deleteAccount(id) {
             const doc = await db.collection(COLL_ACCOUNTS).doc(id).get();
-            if (!doc.exists || doc.data().status !== 'pending') return { status: 'error', message: 'Account not found or already approved' };
+            if (!doc.exists) return { status: 'error', message: 'Account not found' };
             const instructorName = doc.data().instructor_name;
             await deleteWhere(COLL_GROUPS, [['instructor', '==', instructorName]]);
             await deleteWhere(COLL_RATINGS, [['instructor', '==', instructorName]]);
+            await deleteWhere(COLL_SECTIONS, [['instructor', '==', instructorName]]);
             await doc.ref.delete();
             return { status: 'success', message: 'Account and all related data deleted successfully!' };
         },
