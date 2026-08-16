@@ -233,9 +233,10 @@ const Api = (() => {
             return { status: 'success', message: 'Account approved successfully!' };
         },
 
-        async deleteAccount(id) {
+        async deleteAccount(id, currentUsername) {
             const doc = await db.collection(COLL_ACCOUNTS).doc(id).get();
             if (!doc.exists) return { status: 'error', message: 'Account not found' };
+            if (currentUsername && doc.data().username === currentUsername) return { status: 'error', message: 'Cannot delete your own account' };
             const instructorName = doc.data().instructor_name;
             await deleteWhere(COLL_GROUPS, [['instructor', '==', instructorName]]);
             await deleteWhere(COLL_RATINGS, [['instructor', '==', instructorName]]);
@@ -419,6 +420,7 @@ const Api = (() => {
 
         async saveGroupMembers(instructor, group_name, section, m1, m2, m3, m4, m5, m6) {
             if (!instructor || !group_name) return { status: 'error', message: 'instructor and group_name required' };
+            if (!section) return { status: 'error', message: 'Create a section first to add members' };
             const members = [m1, m2, m3, m4, m5, m6].map(m => String(m || '').trim().toUpperCase());
             const docs = await queryWhere(COLL_GROUPS, [['instructor', '==', instructor], ['group_name', '==', group_name]]);
             const existing = pickGroupDoc(docs, instructor, section, group_name);

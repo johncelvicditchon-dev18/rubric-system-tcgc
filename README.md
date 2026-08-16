@@ -5,7 +5,7 @@ Instructor-managed rubric scoring with student self/peer rating for classroom pr
 ## Features
 
 - **Role-based auth** -- Instructor accounts with pending-approval workflow; students log in by section + rater name (no password).
-- **Instructor dashboard** -- Student ratings table with search, rater list, group results with member management, rubric criteria management (add/edit/delete/reorder), sections management, account profile editing, pending-account approval, danger-zone reset.
+- **Instructor dashboard** -- Student ratings table with search, rater list, group results with member management (member inputs disabled with a banner when no sections exist), rubric criteria management (add/edit/delete/reorder), sections management, account profile editing, pending-account approval, danger-zone reset.
 - **Student rating flow** -- Group grid selection, rubric radio-grid scoring (1-4 per criterion), submit with confirmation; locked groups display read-only mode.
 - **PDF exports** -- Print and download PDF for student ratings and rater lists via jsPDF.
 - **Professional UI system** -- Toast notifications, custom alert/confirm/loading dialogs, inline field validation, button loading states, empty states, loading spinners.
@@ -84,7 +84,7 @@ The recent overhaul established a token-based design system across `styles.css` 
 | **Dialogs** | `showAlertDialog({title, message, type})`, `showConfirmDialog({title, message, type, danger})`, `showLoadingDialog(message)` -- all return Promises, use focus trap + Escape to dismiss. No native `confirm()`. |
 | **Modal overlays** | `openModalOverlay(el, focusSelector)` / `closeModalOverlay(el)` -- manages `display:flex`, focus trap, exit animation (`closing` class), respects `prefers-reduced-motion`. |
 | **Reduced motion** | `@media (prefers-reduced-motion: reduce)` at end of `styles.css` kills all animations/transitions; JS checks `window.matchMedia('(prefers-reduced-motion: reduce)')` before animation delays. |
-| **Cache-bust** | Asset URLs use `?v=N` convention. Current versions: `styles.css?v=11`, `firestore-api.js?v=9`, `script.js?v=32`. Bump on every deploy-affecting change. |
+| **Cache-bust** | Asset URLs use `?v=N` convention. Current versions: `styles.css?v=12`, `firestore-api.js?v=10`, `script.js?v=33`. Bump on every deploy-affecting change. |
 
 ## Roles & Usage Flows
 
@@ -92,7 +92,7 @@ The recent overhaul established a token-based design system across `styles.css` 
 - **Student login** -- Select section from dropdown, enter rater name (e.g., `DELA CRUZ, JUAN C.`). No password required. Students see only their section's groups.
 - **Rating flow** -- Students select a group from the grid, rate each rubric criterion via radio buttons (1-4), see running total, submit. Locked groups show read-only view of previous rating.
 - **PDF exports** -- Instructors can print or download PDF for Student Ratings and Rater List views (requires jsPDF loaded from CDN).
-- **Approved accounts management** -- The "Manage Approved Accounts" modal uses icon-only trash buttons (with `aria-label` per username) for a cleaner table layout. Deleting an approved account triggers a cascade: group rows and ratings for that instructor are removed.
+- **Approved accounts management** -- The "Manage Approved Accounts" modal uses icon-only trash buttons (with `aria-label` per username) for a cleaner table layout. Deleting an approved account triggers a cascade: group rows and ratings for that instructor are removed. The signed-in account's own row is protected: its delete button is disabled and the handler/data layer reject deleting your own account.
 
 ## Development Notes
 
