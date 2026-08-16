@@ -10,6 +10,7 @@ Instructor-managed rubric scoring with student self/peer rating for classroom pr
 - **PDF exports** -- Print and download PDF for student ratings and rater lists via jsPDF.
 - **Professional UI system** -- Toast notifications, custom alert/confirm/loading dialogs, inline field validation, button loading states, empty states, loading spinners.
 - **Fully responsive** -- Tested at 320/375/480/768/900/1024/1200/1280/1440/1920 px; sidebar drawer on mobile, stacked cards, horizontal-scroll tables.
+- **On-demand group rows** -- `groups_table` documents created only when an instructor saves at least one student member; deleted when all members cleared; toggling a missing group is a safe no-op.
 - **Accessibility** -- ARIA roles/labels on modals, `aria-invalid`/`aria-describedby` on validated fields, `aria-busy` on loading buttons, `focus-visible` outlines, `prefers-reduced-motion` support, keyboard focus traps in modals, Escape to dismiss.
 
 ## Tech Stack
@@ -83,7 +84,7 @@ The recent overhaul established a token-based design system across `styles.css` 
 | **Dialogs** | `showAlertDialog({title, message, type})`, `showConfirmDialog({title, message, type, danger})`, `showLoadingDialog(message)` -- all return Promises, use focus trap + Escape to dismiss. No native `confirm()`. |
 | **Modal overlays** | `openModalOverlay(el, focusSelector)` / `closeModalOverlay(el)` -- manages `display:flex`, focus trap, exit animation (`closing` class), respects `prefers-reduced-motion`. |
 | **Reduced motion** | `@media (prefers-reduced-motion: reduce)` at end of `styles.css` kills all animations/transitions; JS checks `window.matchMedia('(prefers-reduced-motion: reduce)')` before animation delays. |
-| **Cache-bust** | Asset URLs use `?v=N` convention. Current versions: `styles.css?v=10`, `script.js?v=30`. Bump on every deploy-affecting change. |
+| **Cache-bust** | Asset URLs use `?v=N` convention. Current versions: `styles.css?v=11`, `firestore-api.js?v=9`, `script.js?v=32`. Bump on every deploy-affecting change. |
 
 ## Roles & Usage Flows
 
@@ -91,6 +92,7 @@ The recent overhaul established a token-based design system across `styles.css` 
 - **Student login** -- Select section from dropdown, enter rater name (e.g., `DELA CRUZ, JUAN C.`). No password required. Students see only their section's groups.
 - **Rating flow** -- Students select a group from the grid, rate each rubric criterion via radio buttons (1-4), see running total, submit. Locked groups show read-only view of previous rating.
 - **PDF exports** -- Instructors can print or download PDF for Student Ratings and Rater List views (requires jsPDF loaded from CDN).
+- **Approved accounts management** -- The "Manage Approved Accounts" modal uses icon-only trash buttons (with `aria-label` per username) for a cleaner table layout. Deleting an approved account triggers a cascade: group rows and ratings for that instructor are removed.
 
 ## Development Notes
 
