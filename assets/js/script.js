@@ -1817,21 +1817,35 @@ async function loadAdminGroupResults() {
     try {
         const data = await Api.getGroups(currentInstructor, currentSection);
 
+        let hasSections = false;
+        try {
+            const sectionsRes = await Api.getSections(currentInstructor);
+            hasSections = ((sectionsRes && sectionsRes.sections) || []).length > 0;
+        } catch (e) {
+            hasSections = false;
+        }
+
         if (data.status === 'success') {
-            renderAdminGroupResults(data.groups);
+            renderAdminGroupResults(data.groups, hasSections);
         } else {
-            renderAdminGroupResults({});
+            renderAdminGroupResults({}, hasSections);
         }
     } catch (err) {
-        renderAdminGroupResults({});
+        renderAdminGroupResults({}, false);
     }
 }
 
-function renderAdminGroupResults(groups) {
+function renderAdminGroupResults(groups, hasSections) {
     const grid = document.getElementById('adminGroupResults');
     if (!grid) return;
 
+    const canAddMembers = hasSections === true;
+    const memberInputDisabled = canAddMembers ? '' : ' disabled';
+
     let html = '';
+    if (!canAddMembers) {
+        html += '<div class="no-sections-banner">Create a section first to add members.</div>';
+    }
     GROUPS.forEach(gn => {
         const grp = groups[gn] || { member1_name: '', member2_name: '', member3_name: '', member4_name: '', member5_name: '', member6_name: '', is_closed: 0, total_score: 0, num_ratings: 0 };
 
@@ -1855,12 +1869,12 @@ function renderAdminGroupResults(groups) {
             <div class="admin-card-body">
                 <label class="admin-member-label">Members (Optional)</label>
                 <div class="admin-member-inputs">
-                    <input type="text" class="admin-member-input u-text-upper" id="member1_${gn.replace(' ', '_')}" placeholder="Member 1" aria-label="Member 1" value="${grp.member1_name}" oninput="debouncedSaveMembers('${gn}')">
-                    <input type="text" class="admin-member-input u-text-upper" id="member2_${gn.replace(' ', '_')}" placeholder="Member 2" aria-label="Member 2" value="${grp.member2_name}" oninput="debouncedSaveMembers('${gn}')">
-                    <input type="text" class="admin-member-input u-text-upper" id="member3_${gn.replace(' ', '_')}" placeholder="Member 3" aria-label="Member 3" value="${grp.member3_name}" oninput="debouncedSaveMembers('${gn}')">
-                    <input type="text" class="admin-member-input u-text-upper" id="member4_${gn.replace(' ', '_')}" placeholder="Member 4" aria-label="Member 4" value="${grp.member4_name}" oninput="debouncedSaveMembers('${gn}')">
-                    <input type="text" class="admin-member-input u-text-upper" id="member5_${gn.replace(' ', '_')}" placeholder="Member 5" aria-label="Member 5" value="${grp.member5_name}" oninput="debouncedSaveMembers('${gn}')">
-                    <input type="text" class="admin-member-input u-text-upper" id="member6_${gn.replace(' ', '_')}" placeholder="Member 6" aria-label="Member 6" value="${grp.member6_name}" oninput="debouncedSaveMembers('${gn}')">
+                    <input type="text" class="admin-member-input u-text-upper" id="member1_${gn.replace(' ', '_')}" placeholder="Member 1" aria-label="Member 1" value="${grp.member1_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member2_${gn.replace(' ', '_')}" placeholder="Member 2" aria-label="Member 2" value="${grp.member2_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member3_${gn.replace(' ', '_')}" placeholder="Member 3" aria-label="Member 3" value="${grp.member3_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member4_${gn.replace(' ', '_')}" placeholder="Member 4" aria-label="Member 4" value="${grp.member4_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member5_${gn.replace(' ', '_')}" placeholder="Member 5" aria-label="Member 5" value="${grp.member5_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member6_${gn.replace(' ', '_')}" placeholder="Member 6" aria-label="Member 6" value="${grp.member6_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
                 </div>
             </div>
         </div>`;
@@ -1877,6 +1891,7 @@ function debounce(fn, delay) {
 }
 
 const debouncedSaveMembers = debounce(async (groupName) => {
+    if (!currentSection) { showToast('Create a section first.', 'warning'); return; }
     const key = groupName.replace(' ', '_');
     const m1 = document.getElementById(`member1_${key}`).value.trim();
     const m2 = document.getElementById(`member2_${key}`).value.trim();
@@ -2044,6 +2059,8 @@ async function loadApprovedAccounts() {
                 btn.setAttribute('title', 'Delete account');
                 btn.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i>';
                 btn.addEventListener('click', () => deleteApprovedAccount(a.id, a.username));
+                const isOwn = a.username === sessionStorage.getItem('accountUsername');
+                if (isOwn) { btn.disabled = true; btn.title = 'Cannot delete your own account'; btn.setAttribute('aria-label', 'Cannot delete your own account'); }
                 tdAction.appendChild(btn);
 
                 tr.appendChild(tdInstructor);
@@ -2079,27 +2096,15 @@ async function loadApprovedCount() {
 }
 
 async function deleteApprovedAccount(id, username) {
+    if (username && username === sessionStorage.getItem('accountUsername')) { showToast('You cannot delete your own account.', 'warning'); return; }
     const confirmed = await showConfirmDialog({ title: 'Delete Account', message: 'Delete this approved instructor account and ALL of its data (groups, ratings, sections)? This cannot be undone.', type: 'warning', confirmText: 'Delete', cancelText: 'Cancel', danger: true });
     if (!confirmed) return;
     try {
-        const data = await Api.deleteAccount(id);
+        const data = await Api.deleteAccount(id, sessionStorage.getItem('accountUsername'));
         if (data.status === 'success') {
             showToast(data.message, 'success');
             loadApprovedAccounts();
             loadApprovedCount();
-            if (username && username === sessionStorage.getItem('accountUsername')) {
-                sessionStorage.clear();
-                currentUserRole = null;
-                currentUserName = null;
-                currentInstructor = null;
-                currentStudentGroup = null;
-                currentStudentSection = null;
-                closeApprovedModal();
-                showToast('Your account was deleted. Please log in again.', 'info');
-                document.getElementById('authContainer').style.display = 'flex';
-                document.getElementById('dashboard').style.display = 'none';
-                document.getElementById('studentDashboard').style.display = 'none';
-            }
         } else {
             showToast(data.message, 'error');
         }
