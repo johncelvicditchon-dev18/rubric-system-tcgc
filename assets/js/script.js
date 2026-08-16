@@ -1891,7 +1891,7 @@ function debounce(fn, delay) {
 }
 
 const debouncedSaveMembers = debounce(async (groupName) => {
-    if (!currentSection) { showToast('Create a section first.', 'warning'); return; }
+    if (!currentSection) { showToast('Create a section first to add members', 'warning'); return; }
     const key = groupName.replace(' ', '_');
     const m1 = document.getElementById(`member1_${key}`).value.trim();
     const m2 = document.getElementById(`member2_${key}`).value.trim();
@@ -2007,7 +2007,7 @@ async function deletePendingAccount(id) {
     const confirmed = await showConfirmDialog({ title: 'Delete Account', message: 'Delete this pending account? This cannot be undone.', type: 'warning', confirmText: 'Delete', cancelText: 'Cancel', danger: true });
     if (!confirmed) return;
     try {
-        const data = await Api.deleteAccount(id);
+        const data = await Api.deleteAccount(id, undefined);
         if (data.status === 'success') {
             showToast(data.message, 'success');
             loadPendingAccounts();
@@ -2060,7 +2060,7 @@ async function loadApprovedAccounts() {
                 btn.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i>';
                 btn.addEventListener('click', () => deleteApprovedAccount(a.id, a.username));
                 const isOwn = a.username === sessionStorage.getItem('accountUsername');
-                if (isOwn) { btn.disabled = true; btn.title = 'Cannot delete your own account'; btn.setAttribute('aria-label', 'Cannot delete your own account'); }
+                if (isOwn) { btn.disabled = true; btn.setAttribute('disabled', ''); btn.title = 'Cannot delete your own account'; btn.setAttribute('aria-label', 'Cannot delete your own account'); }
                 tdAction.appendChild(btn);
 
                 tr.appendChild(tdInstructor);
