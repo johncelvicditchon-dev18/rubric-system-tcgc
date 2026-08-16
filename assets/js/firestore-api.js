@@ -188,34 +188,12 @@ const Api = (() => {
             const hash = await hashPassword(password);
             const instructorName = String(name || '').trim().toUpperCase();
             if (!instructorName) return { status: 'error', message: 'Full name is required' };
-            const accountRef = await db.collection(COLL_ACCOUNTS).add({
+            await db.collection(COLL_ACCOUNTS).add({
                 instructor_name: instructorName,
                 username: username,
                 password: hash,
                 status: 'pending'
             });
-            const existingGroups = await queryWhere(COLL_GROUPS, [['instructor', '==', instructorName]]);
-            if (existingGroups.length === 0) {
-                try {
-                    const batch = db.batch();
-                    GROUP_NAMES.forEach(gn => {
-                        batch.set(db.collection(COLL_GROUPS).doc(groupDocId(instructorName, '', gn)), emptyGroupData(instructorName, '', gn));
-                    });
-                    await batch.commit();
-                } catch {
-                    try {
-                        await db.collection(COLL_ACCOUNTS).doc(accountRef.id).delete();
-                    } catch {
-                        // best-effort rollback only — ignore rollback failures
-                    }
-                    try {
-                        await deleteWhere(COLL_GROUPS, [['instructor', '==', instructorName]]);
-                    } catch {
-                        // best-effort cleanup only — ignore cleanup failures
-                    }
-                    return { status: 'error', message: 'Signup failed — please try again' };
-                }
-            }
             return { status: 'success', message: 'Account created! Waiting for admin approval. You cannot login until approved.' };
         },
 
@@ -393,15 +371,7 @@ const Api = (() => {
             if (!instructor) return { status: 'error', message: 'instructor parameter required' };
             const conds = [['instructor', '==', instructor]];
             if (section) conds.push(['section', '==', section]);
-            let groups = await queryWhere(COLL_GROUPS, conds);
-            if (groups.length === 0) {
-                const batch = db.batch();
-                GROUP_NAMES.forEach(gn => {
-                    batch.set(db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, gn)), emptyGroupData(instructor, section, gn));
-                });
-                await batch.commit();
-                groups = await queryWhere(COLL_GROUPS, conds);
-            }
+            const groups = await queryWhere(COLL_GROUPS, conds);
             const ratingConds = [['instructor', '==', instructor]];
             if (section) ratingConds.push(['section', '==', section]);
             const ratings = await queryWhere(COLL_RATINGS, ratingConds);
@@ -452,32 +422,37 @@ const Api = (() => {
             const members = [m1, m2, m3, m4, m5, m6].map(m => String(m || '').trim().toUpperCase());
             const docs = await queryWhere(COLL_GROUPS, [['instructor', '==', instructor], ['group_name', '==', group_name]]);
             const existing = pickGroupDoc(docs, instructor, section, group_name);
-            if (existing) {
-                const oldNames = MEMBER_FIELDS.map(f => String(existing[f] || '').trim().toUpperCase());
-                const upd = {
-                    member1_name: members[0],
-                    member2_name: members[1],
-                    member3_name: members[2],
-                    member4_name: members[3],
-                    member5_name: members[4],
-                    member6_name: members[5]
-                };
-                await db.collection(COLL_GROUPS).doc(existing.id).update(upd);
-                for (let i = 0; i < 6; i++) {
-                    const o = oldNames[i], n = members[i];
-                    if (o && n && o !== n) {
-                        await renameRaterRatings(o, n, instructor);
+            const hasMember = members.some(m => m !== '');
+            if (hasMember) {
+                if (existing) {
+                    const oldNames = MEMBER_FIELDS.map(f => String(existing[f] || '').trim().toUpperCase());
+                    const upd = {
+                        member1_name: members[0],
+                        member2_name: members[1],
+                        member3_name: members[2],
+                        member4_name: members[3],
+                        member5_name: members[4],
+                        member6_name: members[5]
+                    };
+                    await db.collection(COLL_GROUPS).doc(existing.id).update(upd);
+                    for (let i = 0; i < 6; i++) {
+                        const o = oldNames[i], n = members[i];
+                        if (o && n && o !== n) {
+                            await renameRaterRatings(o, n, instructor);
+                        }
                     }
+                } else {
+                    const data = emptyGroupData(instructor, section, group_name);
+                    data.member1_name = members[0];
+                    data.member2_name = members[1];
+                    data.member3_name = members[2];
+                    data.member4_name = members[3];
+                    data.member5_name = members[4];
+                    data.member6_name = members[5];
+                    await db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, group_name)).set(data);
                 }
-            } else {
-                const data = emptyGroupData(instructor, section, group_name);
-                data.member1_name = members[0];
-                data.member2_name = members[1];
-                data.member3_name = members[2];
-                data.member4_name = members[3];
-                data.member5_name = members[4];
-                data.member6_name = members[5];
-                await db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, group_name)).set(data);
+            } else if (existing) {
+                await db.collection(COLL_GROUPS).doc(existing.id).delete();
             }
             return { status: 'success', message: 'Members saved successfully' };
         },
@@ -491,10 +466,7 @@ const Api = (() => {
                 await db.collection(COLL_GROUPS).doc(existing.id).update({ is_closed: newStatus });
                 return { status: 'success', is_closed: newStatus, message: newStatus ? 'Group closed' : 'Group opened' };
             }
-            const data = emptyGroupData(instructor, section, group_name);
-            data.is_closed = 1;
-            await db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, group_name)).set(data);
-            return { status: 'success', is_closed: 1, message: 'Group closed' };
+            return { status: 'success', is_closed: 0, message: 'Group opened' };
         },
 
         // ===== RATINGS =====
