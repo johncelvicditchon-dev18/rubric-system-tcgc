@@ -2068,17 +2068,57 @@ const debouncedSaveMembers = debounce(async (groupName) => {
 }, 600);
 
 async function handleToggleGroupStatus(groupName) {
+    const btn = document.querySelector(`[data-group="${groupName}"] .btn-toggle-group`);
+    if (btn && btn.disabled) return;
+    if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+        btn.style.pointerEvents = 'none';
+    }
+
+    const card = document.querySelector(`[data-group="${groupName}"]`);
+    const isOpen = btn && btn.classList.contains('btn-open');
+    const newIsClosed = isOpen ? 1 : 0;
+
+    if (btn) {
+        if (newIsClosed === 1) {
+            btn.className = 'btn-toggle-group btn-closed';
+            btn.innerHTML = '<i class="fas fa-lock"></i> CLOSED';
+        } else {
+            btn.className = 'btn-toggle-group btn-open';
+            btn.innerHTML = '<i class="fas fa-unlock"></i> OPEN';
+        }
+    }
+
     try {
         const data = await Api.toggleGroupStatus(currentInstructor, groupName, currentSection);
-
-        if (data.status === 'success') {
-            showToast(data.message, 'success');
-            loadAdminGroupResults();
-        } else {
-            showToast(data.message || 'Error toggling group status', 'error');
+        if (data.status !== 'success') {
+            if (btn) {
+                if (isOpen) {
+                    btn.className = 'btn-toggle-group btn-open';
+                    btn.innerHTML = '<i class="fas fa-unlock"></i> OPEN';
+                } else {
+                    btn.className = 'btn-toggle-group btn-closed';
+                    btn.innerHTML = '<i class="fas fa-lock"></i> CLOSED';
+                }
+            }
         }
     } catch (err) {
-        showToast('Network error', 'error');
+        if (btn) {
+            if (isOpen) {
+                btn.className = 'btn-toggle-group btn-open';
+                btn.innerHTML = '<i class="fas fa-unlock"></i> OPEN';
+            } else {
+                btn.className = 'btn-toggle-group btn-closed';
+                btn.innerHTML = '<i class="fas fa-lock"></i> CLOSED';
+            }
+        }
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '';
+            btn.style.pointerEvents = '';
+        }
     }
 }
 

@@ -1519,6 +1519,10 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+.btn-toggle-group:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
 .btn-toggle-group i { margin-right: 4px; }
 .btn-open { background: var(--green-50); color: var(--green-700); border-color: var(--green-200); }
 .btn-open:hover { background: var(--green-100); border-color: var(--green-400); }
