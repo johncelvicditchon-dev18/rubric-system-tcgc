@@ -505,6 +505,12 @@ const Api = (() => {
                 await db.collection(COLL_GROUPS).doc(existing.id).update({ is_closed: newStatus });
                 return { status: 'success', is_closed: newStatus, message: newStatus ? 'Group closed' : 'Group opened' };
             }
+            if (section) {
+                const data = emptyGroupData(instructor, section, group_name);
+                data.is_closed = 1;
+                await db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, group_name)).set(data);
+                return { status: 'success', is_closed: 1, message: 'Group closed' };
+            }
             return { status: 'success', is_closed: 0, message: 'Group opened' };
         },
 
