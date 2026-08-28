@@ -510,6 +510,25 @@ async function initStudentDashboard() {
         studentGroupStatus = {};
     }
 
+    try {
+        const data = await Api.getGroups(currentInstructor, currentStudentSection);
+        if (data.status === 'success' && data.groups) {
+            const apiGroupNames = Object.keys(data.groups).sort((a, b) => {
+                const numA = parseInt(a.replace('GROUP ', ''), 10) || 0;
+                const numB = parseInt(b.replace('GROUP ', ''), 10) || 0;
+                return numA - numB;
+            });
+            const defaultGroups = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
+            const merged = new Set([...defaultGroups, ...apiGroupNames]);
+            GROUPS = [...merged].sort((a, b) => {
+                const numA = parseInt(a.replace('GROUP ', ''), 10) || 0;
+                const numB = parseInt(b.replace('GROUP ', ''), 10) || 0;
+                return numA - numB;
+            });
+        }
+    } catch (e) {
+    }
+
     renderStudentGroups();
 }
 
@@ -518,7 +537,14 @@ function renderStudentGroups() {
     container.innerHTML = '';
     container.style.display = 'grid';
 
-    GROUPS.forEach((gn) => {
+    const activeGroups = GROUPS.filter(gn => studentGroupStatus.hasOwnProperty(gn) || GROUPS.includes(gn));
+
+    if (activeGroups.length === 0) {
+        container.innerHTML = '<div class="no-data" style="display:block;text-align:center;padding:40px;color:var(--neutral-500);"><i class="fas fa-users" style="font-size:48px;margin-bottom:16px;color:var(--neutral-300);display:block;"></i><p>No groups available at this time.</p></div>';
+        return;
+    }
+
+    activeGroups.forEach((gn) => {
         let hasRated = false;
         let displayScore = 0;
         const rating = studentRatings[gn];
@@ -569,6 +595,11 @@ function renderStudentGroups() {
 }
 
 async function openStudentGroupRating(groupName) {
+    if (!GROUPS.includes(groupName)) {
+        showToast('This group no longer exists', 'error');
+        return;
+    }
+
     const isClosed = studentGroupStatus[groupName] === 1;
     const existing = studentRatings[groupName];
     const hasRating = existing && existing.total_score > 0;
@@ -660,6 +691,11 @@ function updateStudentScore() {
 
 async function handleSaveStudentRating() {
     if (!studentCurrentGroup) return;
+    if (!GROUPS.includes(studentCurrentGroup)) {
+        showToast('This group no longer exists and cannot be rated', 'error');
+        await initStudentDashboard();
+        return;
+    }
     if (studentRatingReadOnly) {
         showToast('This group is closed for rating', 'error');
         return;
