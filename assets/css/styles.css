@@ -408,14 +408,35 @@ body {
 
 .student-group-card.closed {
   background: rgba(255,255,255,0.03);
-  border-color: rgba(255,255,255,0.06);
-  opacity: 0.75;
+  border-color: rgba(220,53,69,0.3);
+  opacity: 0.7;
   cursor: not-allowed;
+  position: relative;
+  overflow: hidden;
 }
 .student-group-card.closed:hover {
   transform: none;
   background: rgba(255,255,255,0.03);
   box-shadow: none;
+}
+
+.locked-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.15);
+  pointer-events: none;
+  z-index: 1;
+}
+.locked-overlay i {
+  font-size: 40px;
+  color: rgba(220,53,69,0.4);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
 .closed-badge {
