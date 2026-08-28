@@ -1601,6 +1601,39 @@ body {
   box-shadow: 0 2px 8px rgba(220,38,38,0.2);
 }
 
+/* Delete Group Modal Confirm Button Disabled State */
+#confirmDeleteGroupBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+#confirmDeleteGroupBtn:disabled:hover {
+  background: var(--red-600);
+  color: white;
+}
+
+/* Delete Group Modal Error Message */
+.field-error {
+  display: block;
+  color: var(--red-600);
+  font-size: 12px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* Delete Group Modal Danger Note */
+.modal-danger-note {
+  color: var(--red-600);
+  font-weight: 700;
+  margin-bottom: 20px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.modal-danger-note i {
+  margin-right: 6px;
+}
+
 /* Add Group Button */
 .btn-add-group {
   display: flex;
@@ -1666,22 +1699,6 @@ body {
     padding: 0;
     overflow: hidden;
   }
-}
-
-/* No Groups Message */
-.no-groups-message {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--neutral-500);
-}
-.no-groups-message i {
-  font-size: 48px;
-  margin-bottom: 16px;
-  color: var(--neutral-300);
-}
-.no-groups-message p {
-  font-size: 14px;
-  margin-bottom: 8px;
 }
 
 /* No Data */

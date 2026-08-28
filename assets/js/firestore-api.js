@@ -417,6 +417,8 @@ const Api = (() => {
                 const match = String(g.group_name || '').match(/^GROUP\s+(\d+)$/i);
                 if (match) existingNums.push(parseInt(match[1], 10));
             });
+            const defaultNums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+            defaultNums.forEach(n => { if (!existingNums.includes(n)) existingNums.push(n); });
             let nextNum = 1;
             while (existingNums.includes(nextNum)) nextNum++;
             const groupName = 'GROUP ' + nextNum;

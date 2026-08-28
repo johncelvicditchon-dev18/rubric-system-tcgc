@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/styles.css?v=12">
+    <link rel="stylesheet" href="assets/css/styles.css?v=13">
     <link rel="icon" type="image/png" href="assets/images/logo-toggle.png">
 </head>
 <body>
@@ -285,11 +285,18 @@
                 </div>
                 <div class="modal-body">
                     <p id="deleteGroupModalDesc" class="modal-danger-note">
-                        <i class="fas fa-exclamation-circle"></i> Are you sure you want to delete <strong id="deleteGroupNameDisplay"></strong>? This action <strong>cannot</strong> be undone.
+                        <i class="fas fa-exclamation-circle"></i> Are you sure you want to delete <strong id="deleteGroupNameDisplay"></strong>? This action <strong>cannot</strong> be undone. All member data will be permanently removed.
                     </p>
+                    <div class="form-group">
+                        <label for="deleteInstructorConfirm">Type your full instructor name to confirm deletion</label>
+                        <input type="text" id="deleteInstructorConfirm" placeholder="e.g. ARMALENE ABRAGAN" class="u-text-upper" oninput="validateDeleteGroupName()" required>
+                        <span id="deleteInstructorError" class="field-error" style="display:none;color:var(--red-600);font-size:12px;margin-top:4px;">
+                            <i class="fas fa-exclamation-triangle"></i> The instructor name does not match. Please enter the correct instructor name to confirm deletion.
+                        </span>
+                    </div>
                     <div class="modal-actions modal-actions--end">
                         <button class="btn btn--neutral" onclick="closeDeleteGroupModal()">Cancel</button>
-                        <button class="btn btn-danger" onclick="confirmDeleteGroup()"><i class="fas fa-trash-alt"></i> Delete Group</button>
+                        <button class="btn btn-danger" id="confirmDeleteGroupBtn" onclick="confirmDeleteGroup()" disabled><i class="fas fa-trash-alt"></i> Delete Group</button>
                     </div>
                 </div>
             </div>
@@ -481,8 +488,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="assets/js/firebase-init.js?v=2"></script>
-    <script src="assets/js/firestore-api.js?v=10"></script>
+    <script src="assets/js/firestore-api.js?v=11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js" integrity="sha384-qovJwSBbRDPP5cEjCp8S0UP66wrvnjaa60XMOGzTNanrThcrGfXfnZkvgY8N1KT3" crossorigin="anonymous" defer></script>
-    <script src="assets/js/script.js?v=33"></script>
+    <script src="assets/js/script.js?v=34"></script>
 </body>
 </html>

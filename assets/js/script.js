@@ -200,7 +200,7 @@ const RUBRIC_CRITERIA = [
     { id: 'strategies', name: 'Strategies & Enjoyment', maxScore: 4 }
 ];
 
-const GROUPS = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
+let GROUPS = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
 let pendingDeleteGroupName = '';
 
 // ========== INIT ==========
@@ -1826,7 +1826,19 @@ async function loadAdminGroupResults() {
             hasSections = false;
         }
 
-        if (data.status === 'success') {
+        if (data.status === 'success' && data.groups) {
+            const apiGroupNames = Object.keys(data.groups).sort((a, b) => {
+                const numA = parseInt(a.replace('GROUP ', ''), 10) || 0;
+                const numB = parseInt(b.replace('GROUP ', ''), 10) || 0;
+                return numA - numB;
+            });
+            const defaultGroups = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
+            const merged = new Set([...defaultGroups, ...apiGroupNames]);
+            GROUPS = [...merged].sort((a, b) => {
+                const numA = parseInt(a.replace('GROUP ', ''), 10) || 0;
+                const numB = parseInt(b.replace('GROUP ', ''), 10) || 0;
+                return numA - numB;
+            });
             renderAdminGroupResults(data.groups, hasSections);
         } else {
             renderAdminGroupResults({}, hasSections);
@@ -1846,13 +1858,6 @@ function renderAdminGroupResults(groups, hasSections) {
     let html = '';
     if (!canAddMembers) {
         html += '<div class="no-sections-banner">Create a section first to add members.</div>';
-    }
-    if (GROUPS.length === 0) {
-        html += `<div class="no-groups-message">
-            <i class="fas fa-users"></i>
-            <p>No groups yet.</p>
-            <p>Click "Add Another Group" to create your first group.</p>
-        </div>`;
     }
     GROUPS.forEach(gn => {
         const grp = groups[gn] || { member1_name: '', member2_name: '', member3_name: '', member4_name: '', member5_name: '', member6_name: '', is_closed: 0, total_score: 0, num_ratings: 0 };
@@ -1910,8 +1915,13 @@ async function handleAddGroup() {
             const newGroupName = data.group_name;
             if (!GROUPS.includes(newGroupName)) {
                 GROUPS.push(newGroupName);
+                GROUPS.sort((a, b) => {
+                    const numA = parseInt(a.replace('GROUP ', ''), 10) || 0;
+                    const numB = parseInt(b.replace('GROUP ', ''), 10) || 0;
+                    return numA - numB;
+                });
             }
-            showToast(newGroupName + ' created successfully', 'success');
+            showToast(newGroupName + ' has been successfully created.', 'success');
             loadAdminGroupResults();
         } else {
             showToast(data.message || 'Error creating group', 'error');
@@ -1924,31 +1934,69 @@ async function handleAddGroup() {
 function handleDeleteGroup(groupName) {
     pendingDeleteGroupName = groupName;
     document.getElementById('deleteGroupNameDisplay').textContent = groupName;
+    const input = document.getElementById('deleteInstructorConfirm');
+    const error = document.getElementById('deleteInstructorError');
+    const btn = document.getElementById('confirmDeleteGroupBtn');
+    input.value = '';
+    error.style.display = 'none';
+    btn.disabled = true;
     openModalOverlay(document.getElementById('deleteGroupModal'));
+    setTimeout(() => input.focus(), 100);
+}
+
+function validateDeleteGroupName() {
+    const input = document.getElementById('deleteInstructorConfirm');
+    const error = document.getElementById('deleteInstructorError');
+    const btn = document.getElementById('confirmDeleteGroupBtn');
+    const enteredName = (input.value || '').trim().toUpperCase();
+    const instructorName = (currentInstructor || '').trim().toUpperCase();
+    if (enteredName === '') {
+        error.style.display = 'none';
+        btn.disabled = true;
+    } else if (enteredName === instructorName) {
+        error.style.display = 'none';
+        btn.disabled = false;
+    } else {
+        error.style.display = 'block';
+        btn.disabled = true;
+    }
 }
 
 function closeDeleteGroupModal(e) {
     if (e && e.target !== e.currentTarget) return;
     closeModalOverlay(document.getElementById('deleteGroupModal'));
     pendingDeleteGroupName = '';
+    const input = document.getElementById('deleteInstructorConfirm');
+    const error = document.getElementById('deleteInstructorError');
+    const btn = document.getElementById('confirmDeleteGroupBtn');
+    if (input) input.value = '';
+    if (error) error.style.display = 'none';
+    if (btn) btn.disabled = true;
 }
 
 async function confirmDeleteGroup() {
     if (!pendingDeleteGroupName) return;
     const groupName = pendingDeleteGroupName;
-    closeDeleteGroupModal();
+    const btn = document.getElementById('confirmDeleteGroupBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
     try {
         const data = await Api.removeGroup(currentInstructor, currentSection, groupName);
         if (data.status === 'success') {
             const idx = GROUPS.indexOf(groupName);
             if (idx > -1) GROUPS.splice(idx, 1);
-            showToast(groupName + ' deleted', 'success');
+            closeDeleteGroupModal();
+            showToast(groupName + ' has been successfully deleted.', 'success');
             loadAdminGroupResults();
         } else {
             showToast(data.message || 'Error deleting group', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash-alt"></i> Delete Group';
         }
     } catch (err) {
         showToast('Network error', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-trash-alt"></i> Delete Group';
     }
 }
 
