@@ -600,6 +600,13 @@ async function openStudentGroupRating(groupName) {
         return;
     }
 
+    try {
+        const freshStatus = await Api.getGroupStatus(currentInstructor, currentStudentSection);
+        if (freshStatus.status === 'success') {
+            studentGroupStatus = freshStatus.groups;
+        }
+    } catch (e) {}
+
     const isClosed = studentGroupStatus[groupName] === 1;
     const existing = studentRatings[groupName];
     const hasRating = existing && existing.total_score > 0;
@@ -696,6 +703,20 @@ async function handleSaveStudentRating() {
         await initStudentDashboard();
         return;
     }
+
+    try {
+        const freshStatus = await Api.getGroupStatus(currentInstructor, currentStudentSection);
+        if (freshStatus.status === 'success') {
+            studentGroupStatus = freshStatus.groups;
+        }
+    } catch (e) {}
+
+    if (studentGroupStatus[studentCurrentGroup] === 1) {
+        showToast('This group is now closed and cannot be rated', 'error');
+        await initStudentDashboard();
+        return;
+    }
+
     if (studentRatingReadOnly) {
         showToast('This group is closed for rating', 'error');
         return;

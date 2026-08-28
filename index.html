@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/styles.css?v=14">
+    <link rel="stylesheet" href="assets/css/styles.css?v=15">
     <link rel="icon" type="image/png" href="assets/images/logo-toggle.png">
 </head>
 <body>
@@ -436,7 +436,10 @@
         </header>
         <div class="student-content">
             <div id="studentGroupsView">
-                <h2 class="student-title">SELECT A GROUP TO RATE</h2>
+                <div class="student-title-row">
+                    <h2 class="student-title">SELECT A GROUP TO RATE</h2>
+                    <button class="btn btn-refresh" onclick="initStudentDashboard()" title="Refresh groups"><i class="fas fa-sync-alt"></i> Refresh</button>
+                </div>
                 <div class="student-groups-grid" id="studentGroupsGrid"></div>
             </div>
             <div id="studentRatingView" class="u-hidden">
@@ -490,6 +493,6 @@
     <script src="assets/js/firebase-init.js?v=2"></script>
     <script src="assets/js/firestore-api.js?v=11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js" integrity="sha384-qovJwSBbRDPP5cEjCp8S0UP66wrvnjaa60XMOGzTNanrThcrGfXfnZkvgY8N1KT3" crossorigin="anonymous" defer></script>
-    <script src="assets/js/script.js?v=36"></script>
+    <script src="assets/js/script.js?v=37"></script>
 </body>
 </html>

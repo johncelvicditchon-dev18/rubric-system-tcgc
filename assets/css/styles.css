@@ -1735,6 +1735,37 @@ body {
   margin-bottom: 12px;
 }
 
+/* Student Title Row with Refresh */
+.student-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.student-title {
+  margin: 0;
+}
+.btn-refresh {
+  padding: 8px 16px;
+  background: var(--blue-100);
+  color: var(--blue-700);
+  border: 1px solid var(--blue-500);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.btn-refresh:hover {
+  background: var(--blue-500);
+  color: white;
+}
+.btn-refresh i { margin-right: 4px; }
+
 /* ========== BUTTONS ========== */
 .btn {
   padding: 10px 22px;
