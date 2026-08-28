@@ -276,6 +276,25 @@
             </div>
         </div>
 
+        <!-- Delete Group Modal -->
+        <div id="deleteGroupModal" class="modal-overlay u-hidden" onclick="closeDeleteGroupModal(event)" role="alertdialog" aria-modal="true" aria-labelledby="deleteGroupModalTitle" aria-describedby="deleteGroupModalDesc">
+            <div class="modal" onclick="event.stopPropagation()">
+                <div class="modal-header modal-header--danger">
+                    <h3 id="deleteGroupModalTitle"><i class="fas fa-trash-alt"></i> DELETE GROUP</h3>
+                    <button class="modal-close" onclick="closeDeleteGroupModal()" aria-label="Close dialog"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p id="deleteGroupModalDesc" class="modal-danger-note">
+                        <i class="fas fa-exclamation-circle"></i> Are you sure you want to delete <strong id="deleteGroupNameDisplay"></strong>? This action <strong>cannot</strong> be undone.
+                    </p>
+                    <div class="modal-actions modal-actions--end">
+                        <button class="btn btn--neutral" onclick="closeDeleteGroupModal()">Cancel</button>
+                        <button class="btn btn-danger" onclick="confirmDeleteGroup()"><i class="fas fa-trash-alt"></i> Delete Group</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Student Detail Modal -->
         <div id="studentDetailModal" class="modal-overlay u-hidden" onclick="closeStudentDetail(event)" role="dialog" aria-modal="true" aria-labelledby="studentDetailModalTitle">
             <div class="modal-content detail-modal" onclick="event.stopPropagation()">

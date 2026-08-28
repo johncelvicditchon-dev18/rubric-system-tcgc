@@ -1577,6 +1577,113 @@ body {
 }
 .btn-save-members i { margin-right: 5px; }
 
+/* Delete Group Button */
+.btn-delete-group {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--red-100);
+  background: var(--red-50);
+  color: var(--red-600);
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.btn-delete-group i { margin-right: 4px; }
+.btn-delete-group:hover {
+  background: var(--red-600);
+  color: white;
+  border-color: var(--red-600);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220,38,38,0.2);
+}
+
+/* Add Group Button */
+.btn-add-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 16px 20px;
+  border: 2px dashed var(--green-300);
+  border-radius: var(--radius-md);
+  background: var(--green-50);
+  color: var(--green-700);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 16px;
+}
+.btn-add-group i { font-size: 18px; }
+.btn-add-group:hover {
+  background: var(--green-100);
+  border-color: var(--green-500);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(26,138,66,0.15);
+}
+.btn-add-group:active {
+  transform: translateY(0);
+}
+
+/* Group Card Animation */
+.admin-group-card {
+  animation: groupSlideIn 0.3s ease-out;
+}
+
+@keyframes groupSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-group-card.removing {
+  animation: groupSlideOut 0.3s ease-in forwards;
+}
+
+@keyframes groupSlideOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 300px;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+}
+
+/* No Groups Message */
+.no-groups-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--neutral-500);
+}
+.no-groups-message i {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: var(--neutral-300);
+}
+.no-groups-message p {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
 /* No Data */
 /* Empty state — shown via .show (JS) or inline display, contract §2.9 */
 .no-data {
@@ -2955,9 +3062,9 @@ body {
 .card-header .btn-pdf:first-child { margin-left: 12px; }
 
 /* ========== RESPONSIVE (instructor dashboard: account hero, profile dropdown, group results) ========== */
-@media (max-width: 1024px) { .admin-card-header { flex-wrap: wrap; gap: 8px; } .admin-card-actions { gap: 8px; } .admin-member-inputs { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 768px) { .admin-member-inputs { grid-template-columns: 1fr; } .profile-hero-header { flex-direction: column; text-align: center; padding: 24px 20px; gap: 16px; } .profile-hero-header::before { display: none; } .profile-avatar-circle { width: 56px; height: 56px; font-size: 20px; } .profile-hero-text { align-items: center; } .profile-name-display { font-size: 24px; } .profile-detail-row { grid-template-columns: 140px 1fr auto; padding: 14px 20px; } .profile-detail-label { font-size: 10px; } .profile-detail-value { font-size: 13px; } .profile-edit-btn { min-height: 38px; } .account-card-header, .account-card-header-danger { padding: 12px 16px; } .admin-card-header { padding: 12px 14px; } .admin-card-actions { flex-wrap: wrap; gap: 6px; } .admin-total-score { font-size: 13px; } .admin-group-card, .admin-group-card:first-child, .admin-group-card:last-child { border-radius: var(--radius-md); } }
-@media (max-width: 480px) { .profile-hero-header { padding: 20px 16px; } .profile-avatar-circle { width: 48px; height: 48px; font-size: 18px; } .profile-name-display { font-size: 20px; letter-spacing: 1px; } .profile-role-pill, .profile-status-pill { font-size: 9px; padding: 3px 10px; } .profile-detail-row { grid-template-columns: 1fr; gap: 4px; padding: 10px 12px; position: relative; } .profile-detail-row .profile-edit-btn { position: absolute; right: 12px; top: 10px; } .profile-detail-label { font-size: 10px; letter-spacing: 0.5px; } .profile-detail-value { font-size: 12px; padding-right: 48px; } .admin-member-inputs { grid-template-columns: 1fr; } .admin-card-header { padding: 10px 12px; } .admin-card-title h4 { font-size: 14px; } .admin-card-body { padding: 10px 12px; } .admin-member-input { padding: 8px 10px; font-size: 12px; } .admin-total-score { font-size: 12px; } .btn-toggle-group { padding: 5px 10px; font-size: 10px; } .account-card-body { padding: 12px; } .account-card .btn-success, .account-card .btn-danger { width: 100%; text-align: center; } }
+@media (max-width: 1024px) { .admin-card-header { flex-wrap: wrap; gap: 8px; } .admin-card-actions { gap: 8px; } .admin-member-inputs { grid-template-columns: 1fr 1fr; } .btn-delete-group { padding: 5px 10px; font-size: 10px; } }
+@media (max-width: 768px) { .admin-member-inputs { grid-template-columns: 1fr; } .profile-hero-header { flex-direction: column; text-align: center; padding: 24px 20px; gap: 16px; } .profile-hero-header::before { display: none; } .profile-avatar-circle { width: 56px; height: 56px; font-size: 20px; } .profile-hero-text { align-items: center; } .profile-name-display { font-size: 24px; } .profile-detail-row { grid-template-columns: 140px 1fr auto; padding: 14px 20px; } .profile-detail-label { font-size: 10px; } .profile-detail-value { font-size: 13px; } .profile-edit-btn { min-height: 38px; } .account-card-header, .account-card-header-danger { padding: 12px 16px; } .admin-card-header { padding: 12px 14px; } .admin-card-actions { flex-wrap: wrap; gap: 6px; } .admin-total-score { font-size: 13px; } .admin-group-card, .admin-group-card:first-child, .admin-group-card:last-child { border-radius: var(--radius-md); } .btn-delete-group { width: 100%; } .btn-add-group { font-size: 13px; padding: 14px 16px; } }
+@media (max-width: 480px) { .profile-hero-header { padding: 20px 16px; } .profile-avatar-circle { width: 48px; height: 48px; font-size: 18px; } .profile-name-display { font-size: 20px; letter-spacing: 1px; } .profile-role-pill, .profile-status-pill { font-size: 9px; padding: 3px 10px; } .profile-detail-row { grid-template-columns: 1fr; gap: 4px; padding: 10px 12px; position: relative; } .profile-detail-row .profile-edit-btn { position: absolute; right: 12px; top: 10px; } .profile-detail-label { font-size: 10px; letter-spacing: 0.5px; } .profile-detail-value { font-size: 12px; padding-right: 48px; } .admin-member-inputs { grid-template-columns: 1fr; } .admin-card-header { padding: 10px 12px; } .admin-card-title h4 { font-size: 14px; } .admin-card-body { padding: 10px 12px; } .admin-member-input { padding: 8px 10px; font-size: 12px; } .admin-total-score { font-size: 12px; } .btn-toggle-group { padding: 5px 10px; font-size: 10px; } .account-card-body { padding: 12px; } .account-card .btn-success, .account-card .btn-danger { width: 100%; text-align: center; } .btn-delete-group { padding: 8px 12px; font-size: 11px; } .btn-add-group { font-size: 12px; padding: 12px 14px; } }
 
 /* ========== UTILITIES (contract §7) ========== */
 /* NOTE: .u-hidden intentionally does NOT use !important so that JS inline

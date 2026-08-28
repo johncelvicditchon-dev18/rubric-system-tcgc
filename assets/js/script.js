@@ -201,6 +201,7 @@ const RUBRIC_CRITERIA = [
 ];
 
 const GROUPS = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
+let pendingDeleteGroupName = '';
 
 // ========== INIT ==========
 window.addEventListener('DOMContentLoaded', function() {
@@ -1846,6 +1847,13 @@ function renderAdminGroupResults(groups, hasSections) {
     if (!canAddMembers) {
         html += '<div class="no-sections-banner">Create a section first to add members.</div>';
     }
+    if (GROUPS.length === 0) {
+        html += `<div class="no-groups-message">
+            <i class="fas fa-users"></i>
+            <p>No groups yet.</p>
+            <p>Click "Add Another Group" to create your first group.</p>
+        </div>`;
+    }
     GROUPS.forEach(gn => {
         const grp = groups[gn] || { member1_name: '', member2_name: '', member3_name: '', member4_name: '', member5_name: '', member6_name: '', is_closed: 0, total_score: 0, num_ratings: 0 };
 
@@ -1853,7 +1861,7 @@ function renderAdminGroupResults(groups, hasSections) {
         const numRatings = grp.num_ratings;
         const isOpen = grp.is_closed === 0;
 
-        html += `<div class="admin-group-card">
+        html += `<div class="admin-group-card" data-group="${gn}">
             <div class="admin-card-header">
                 <div class="admin-card-title">
                     <h4><i class="fas fa-users"></i> ${gn}</h4>
@@ -1863,6 +1871,9 @@ function renderAdminGroupResults(groups, hasSections) {
                     <span class="admin-total-score">${totalScore}/${currentMaxScore} PTS</span>
                     <button class="btn-toggle-group ${isOpen ? 'btn-open' : 'btn-closed'}" onclick="handleToggleGroupStatus('${gn}')">
                         <i class="fas fa-${isOpen ? 'unlock' : 'lock'}"></i> ${isOpen ? 'OPEN' : 'CLOSED'}
+                    </button>
+                    <button class="btn-delete-group" onclick="handleDeleteGroup('${gn}')" title="Delete ${gn}">
+                        <i class="fas fa-trash-alt"></i> Delete
                     </button>
                 </div>
             </div>
@@ -1879,7 +1890,66 @@ function renderAdminGroupResults(groups, hasSections) {
             </div>
         </div>`;
     });
+
+    html += `<button class="btn-add-group" onclick="handleAddGroup()">
+        <i class="fas fa-plus-circle"></i> Add Another Group
+    </button>`;
+
     grid.innerHTML = html;
+}
+
+// ========== GROUP MANAGEMENT ==========
+async function handleAddGroup() {
+    if (!currentSection) {
+        showToast('Create a section first to add groups', 'warning');
+        return;
+    }
+    try {
+        const data = await Api.addGroup(currentInstructor, currentSection);
+        if (data.status === 'success') {
+            const newGroupName = data.group_name;
+            if (!GROUPS.includes(newGroupName)) {
+                GROUPS.push(newGroupName);
+            }
+            showToast(newGroupName + ' created successfully', 'success');
+            loadAdminGroupResults();
+        } else {
+            showToast(data.message || 'Error creating group', 'error');
+        }
+    } catch (err) {
+        showToast('Network error', 'error');
+    }
+}
+
+function handleDeleteGroup(groupName) {
+    pendingDeleteGroupName = groupName;
+    document.getElementById('deleteGroupNameDisplay').textContent = groupName;
+    openModalOverlay(document.getElementById('deleteGroupModal'));
+}
+
+function closeDeleteGroupModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    closeModalOverlay(document.getElementById('deleteGroupModal'));
+    pendingDeleteGroupName = '';
+}
+
+async function confirmDeleteGroup() {
+    if (!pendingDeleteGroupName) return;
+    const groupName = pendingDeleteGroupName;
+    closeDeleteGroupModal();
+    try {
+        const data = await Api.removeGroup(currentInstructor, currentSection, groupName);
+        if (data.status === 'success') {
+            const idx = GROUPS.indexOf(groupName);
+            if (idx > -1) GROUPS.splice(idx, 1);
+            showToast(groupName + ' deleted', 'success');
+            loadAdminGroupResults();
+        } else {
+            showToast(data.message || 'Error deleting group', 'error');
+        }
+    } catch (err) {
+        showToast('Network error', 'error');
+    }
 }
 
 function debounce(fn, delay) {
