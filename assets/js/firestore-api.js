@@ -444,14 +444,13 @@ const Api = (() => {
             if (section) conds.push(['section', '==', section]);
             const docs = await queryWhere(COLL_GROUPS, conds);
             const status = {};
-            const existingGroups = new Set();
+            const defaultGroups = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
             docs.forEach(g => {
                 const gn = g.group_name;
-                if (gn) existingGroups.add(gn);
-                status[gn] = g.is_closed ? 1 : 0;
+                if (gn) status[gn] = g.is_closed ? 1 : 0;
             });
-            GROUP_NAMES.forEach(gn => {
-                if (!existingGroups.has(gn)) status[gn] = 0;
+            defaultGroups.forEach(gn => {
+                if (status[gn] === undefined) status[gn] = 0;
             });
             return { status: 'success', groups: status };
         },

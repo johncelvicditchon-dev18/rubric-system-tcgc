@@ -505,7 +505,19 @@ async function initStudentDashboard() {
 
     try {
         const data = await Api.getGroupStatus(currentInstructor, currentStudentSection);
-        studentGroupStatus = data.status === 'success' ? data.groups : {};
+        if (data.status === 'success') {
+            studentGroupStatus = data.groups;
+            const statusGroupNames = Object.keys(data.groups);
+            const defaultGroups = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
+            const merged = new Set([...defaultGroups, ...statusGroupNames]);
+            GROUPS = [...merged].sort((a, b) => {
+                const numA = parseInt(a.replace('GROUP ', ''), 10) || 0;
+                const numB = parseInt(b.replace('GROUP ', ''), 10) || 0;
+                return numA - numB;
+            });
+        } else {
+            studentGroupStatus = {};
+        }
     } catch (e) {
         studentGroupStatus = {};
     }
@@ -513,13 +525,9 @@ async function initStudentDashboard() {
     try {
         const data = await Api.getGroups(currentInstructor, currentStudentSection);
         if (data.status === 'success' && data.groups) {
-            const apiGroupNames = Object.keys(data.groups).sort((a, b) => {
-                const numA = parseInt(a.replace('GROUP ', ''), 10) || 0;
-                const numB = parseInt(b.replace('GROUP ', ''), 10) || 0;
-                return numA - numB;
-            });
+            const apiGroupNames = Object.keys(data.groups);
             const defaultGroups = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
-            const merged = new Set([...defaultGroups, ...apiGroupNames]);
+            const merged = new Set([...defaultGroups, ...apiGroupNames, ...Object.keys(studentGroupStatus)]);
             GROUPS = [...merged].sort((a, b) => {
                 const numA = parseInt(a.replace('GROUP ', ''), 10) || 0;
                 const numB = parseInt(b.replace('GROUP ', ''), 10) || 0;
@@ -537,14 +545,12 @@ function renderStudentGroups() {
     container.innerHTML = '';
     container.style.display = 'grid';
 
-    const activeGroups = GROUPS.filter(gn => studentGroupStatus.hasOwnProperty(gn) || GROUPS.includes(gn));
-
-    if (activeGroups.length === 0) {
+    if (GROUPS.length === 0) {
         container.innerHTML = '<div class="no-data" style="display:block;text-align:center;padding:40px;color:var(--neutral-500);"><i class="fas fa-users" style="font-size:48px;margin-bottom:16px;color:var(--neutral-300);display:block;"></i><p>No groups available at this time.</p></div>';
         return;
     }
 
-    activeGroups.forEach((gn) => {
+    GROUPS.forEach((gn) => {
         let hasRated = false;
         let displayScore = 0;
         const rating = studentRatings[gn];
