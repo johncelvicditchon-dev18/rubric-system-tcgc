@@ -1870,10 +1870,10 @@ function renderAdminGroupResults(groups, hasSections) {
                 <label class="admin-member-label">Members (Optional)</label>
                 <div class="admin-member-inputs">
                     <input type="text" class="admin-member-input u-text-upper" id="member1_${gn.replace(' ', '_')}" placeholder="Member 1" aria-label="Member 1" value="${grp.member1_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
-                    <input type="text" class="admin-member-input u-text-upper" id="member2_${gn.replace(' ', '_')}" placeholder="Member 2" aria-label="Member 2" value="${grp.member2_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
-                    <input type="text" class="admin-member-input u-text-upper" id="member3_${gn.replace(' ', '_')}" placeholder="Member 3" aria-label="Member 3" value="${grp.member3_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
                     <input type="text" class="admin-member-input u-text-upper" id="member4_${gn.replace(' ', '_')}" placeholder="Member 4" aria-label="Member 4" value="${grp.member4_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member2_${gn.replace(' ', '_')}" placeholder="Member 2" aria-label="Member 2" value="${grp.member2_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
                     <input type="text" class="admin-member-input u-text-upper" id="member5_${gn.replace(' ', '_')}" placeholder="Member 5" aria-label="Member 5" value="${grp.member5_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member3_${gn.replace(' ', '_')}" placeholder="Member 3" aria-label="Member 3" value="${grp.member3_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
                     <input type="text" class="admin-member-input u-text-upper" id="member6_${gn.replace(' ', '_')}" placeholder="Member 6" aria-label="Member 6" value="${grp.member6_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
                 </div>
             </div>
