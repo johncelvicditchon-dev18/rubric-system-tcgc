@@ -129,11 +129,7 @@ body {
 }
 .auth-bg::before {
   content: ''; position: absolute; inset: 0;
-  background:
-    radial-gradient(ellipse at 20% 50%, rgba(17,92,46,0.4) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 50%, rgba(26,138,66,0.3) 0%, transparent 60%),
-    rgba(10, 30, 20, 0.78);
-  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  background: linear-gradient(90deg, rgba(8,45,30,0.45), rgba(10,60,40,0.25), rgba(0,0,0,0.15));
 }
 
 .auth-container {
@@ -145,16 +141,17 @@ body {
 }
 
 .auth-card {
-  background: rgba(255,255,255,0.96);
+  background: rgba(255,255,255,0.92);
   border-radius: var(--radius-xl);
   padding: 44px 38px;
   width: 420px;
   max-width: 92vw;
-  box-shadow: var(--shadow-xl);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.22), 0 4px 16px rgba(0,0,0,0.08);
   position: relative; z-index: 1;
   animation: scaleIn 0.4s ease;
-  border: 1px solid rgba(255,255,255,0.3);
-  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.4);
+  border-bottom: 3px solid var(--green-700);
+  backdrop-filter: blur(6px);
 }
 
 .auth-logo { text-align: center; margin-bottom: 18px; }
@@ -234,7 +231,7 @@ body {
 .auth-card input:focus {
   outline: none;
   border-color: var(--green-600);
-  box-shadow: 0 0 0 3px rgba(26,138,66,0.12);
+  box-shadow: 0 0 0 3px rgba(26,138,66,0.22);
 }
 .auth-card input::placeholder { color: var(--neutral-400); }
 
@@ -254,7 +251,7 @@ body {
 .auth-card select:focus {
   outline: none;
   border-color: var(--green-600);
-  box-shadow: 0 0 0 3px rgba(26,138,66,0.12);
+  box-shadow: 0 0 0 3px rgba(26,138,66,0.22);
 }
 
 .select-wrapper { position: relative; }
@@ -281,7 +278,7 @@ body {
   background-size: 200% 100%;
   transition: background-position var(--transition);
 }
-.auth-card .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(17,92,46,0.35); }
+.auth-card .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(17,92,46,0.45); }
 .auth-card .btn:hover::after { background-position: right; }
 .auth-card .btn:active { transform: translateY(0); }
 
