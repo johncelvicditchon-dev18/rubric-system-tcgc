@@ -2493,6 +2493,9 @@ body {
 .toast-loading { border-left-color: var(--neutral-500); }
 .toast-loading .toast-icon { background: linear-gradient(135deg, var(--neutral-600), var(--neutral-700)); }
 
+/* Toasts disabled per owner request — showToast() logic intact, visuals suppressed. */
+.toast-container { display: none !important; }
+
 /* ========== UI DIALOGS (Alert / Confirm / Loading) ========== */
 .ui-dialog-overlay {
   position: fixed; inset: 0;
