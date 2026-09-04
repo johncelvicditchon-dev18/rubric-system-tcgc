@@ -187,19 +187,6 @@ async function restoreSectionState() {
     }
 }
 
-const RUBRIC_CRITERIA = [
-    { id: 'content_accuracy', name: 'Content Accuracy', maxScore: 4 },
-    { id: 'understanding_topic', name: 'Understanding of Topic', maxScore: 4 },
-    { id: 'organization_structure', name: 'Organization & Structure', maxScore: 4 },
-    { id: 'delivery_communication', name: 'Delivery & Communication', maxScore: 4 },
-    { id: 'audience_engagement', name: 'Audience Engagement', maxScore: 4 },
-    { id: 'visual_aids', name: 'Visual Aids/Materials', maxScore: 4 },
-    { id: 'professional_appearance', name: 'Professional Appearance', maxScore: 4 },
-    { id: 'teamwork_collaboration', name: 'Teamwork/Collaboration', maxScore: 4 },
-    { id: 'time_allocation', name: 'Time Allocation: 30 mins', maxScore: 4 },
-    { id: 'strategies', name: 'Strategies & Enjoyment', maxScore: 4 }
-];
-
 let GROUPS = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
 let pendingDeleteGroupName = '';
 
@@ -618,7 +605,9 @@ async function openStudentGroupRating(groupName) {
         if (freshStatus.status === 'success') {
             studentGroupStatus = freshStatus.groups;
         }
-    } catch (e) {}
+    } catch (e) {
+        console.warn('Could not refresh group status:', e);
+    }
 
     const isClosed = studentGroupStatus[groupName] === 1;
 
@@ -723,7 +712,9 @@ async function handleSaveStudentRating() {
         if (freshStatus.status === 'success') {
             studentGroupStatus = freshStatus.groups;
         }
-    } catch (e) {}
+    } catch (e) {
+        console.warn('Could not refresh group status:', e);
+    }
 
     if (studentGroupStatus[studentCurrentGroup] === 1) {
         showToast('This group is LOCKED and cannot be rated', 'error');
@@ -1478,21 +1469,6 @@ async function downloadRaterListPDF() {
 }
 
 // ========== STUDENT DETAIL MODAL ==========
-const CRITERIA_LABELS = {
-    content_accuracy: 'Content Accuracy',
-    understanding_topic: 'Understanding of Topic',
-    organization_structure: 'Organization & Structure',
-    delivery_communication: 'Delivery & Communication',
-    audience_engagement: 'Audience Engagement',
-    visual_aids: 'Visual Aids/Materials',
-    professional_appearance: 'Professional Appearance',
-    teamwork_collaboration: 'Teamwork/Collaboration',
-    time_allocation: 'Time Allocation: 30 mins',
-    strategies: 'Strategies & Enjoyment'
-};
-
-const CRITERIA_KEYS = Object.keys(CRITERIA_LABELS);
-
 function openStudentDetail(name, e) {
     e.preventDefault();
     document.getElementById('detailStudentName').textContent = name;
@@ -1661,7 +1637,10 @@ async function loadSectionsManagement() {
             tbody.innerHTML = '';
             noData.style.display = 'block';
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error('loadSectionsManagement error:', e);
+        showToast('Failed to load sections', 'error');
+    }
 }
 
 async function saveSectionRow(oldName) {
@@ -1698,6 +1677,7 @@ async function deleteSectionRow(sectionName) {
             showToast('Section deleted', 'success');
             if (currentSection === sectionName) {
                 currentSection = '';
+                currentMaxScore = 1000;
                 sessionStorage.removeItem('currentSection_' + currentInstructor);
             }
             loadSectionsManagement();
@@ -1916,6 +1896,7 @@ async function loadAdminGroupResults() {
             renderAdminGroupResults({}, hasSections);
         }
     } catch (err) {
+        console.error('loadAdminGroupResults error:', err);
         renderAdminGroupResults({}, false);
     }
 }
@@ -2070,6 +2051,8 @@ async function confirmDeleteGroup() {
         if (data.status === 'success') {
             const idx = GROUPS.indexOf(groupName);
             if (idx > -1) GROUPS.splice(idx, 1);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash-alt"></i> Delete Group';
             closeDeleteGroupModal();
             showToast(groupName + ' has been successfully deleted.', 'success');
             loadAdminGroupResults();
@@ -2085,36 +2068,30 @@ async function confirmDeleteGroup() {
     }
 }
 
-function debounce(fn, delay) {
-    let timer;
-    return function (...args) {
-        clearTimeout(timer);
-        timer = setTimeout(() => fn.apply(this, args), delay);
-    };
-}
+// Per-group debounce timers so editing GROUP 1 and GROUP 2 don't cancel each other
+const _memberTimers = {};
+function debouncedSaveMembers(groupName) {
+    if (_memberTimers[groupName]) clearTimeout(_memberTimers[groupName]);
+    _memberTimers[groupName] = setTimeout(async () => {
+        if (!currentSection) return;
+        const key = groupName.replace(/ /g, '_');
+        const m1 = document.getElementById(`member1_${key}`).value.trim();
+        const m2 = document.getElementById(`member2_${key}`).value.trim();
+        const m3 = document.getElementById(`member3_${key}`).value.trim();
+        const m4 = document.getElementById(`member4_${key}`).value.trim();
+        const m5 = document.getElementById(`member5_${key}`).value.trim();
+        const m6 = document.getElementById(`member6_${key}`).value.trim();
 
-const debouncedSaveMembers = debounce(async (groupName) => {
-    if (!currentSection) { showToast('Create a section first to add members', 'warning'); return; }
-    const key = groupName.replace(/ /g, '_');
-    const m1 = document.getElementById(`member1_${key}`).value.trim();
-    const m2 = document.getElementById(`member2_${key}`).value.trim();
-    const m3 = document.getElementById(`member3_${key}`).value.trim();
-    const m4 = document.getElementById(`member4_${key}`).value.trim();
-    const m5 = document.getElementById(`member5_${key}`).value.trim();
-    const m6 = document.getElementById(`member6_${key}`).value.trim();
-
-    try {
-        const data = await Api.saveGroupMembers(currentInstructor, groupName, currentSection, m1, m2, m3, m4, m5, m6);
-
-        if (data.status === 'success') {
-            showToast('Members saved for ' + groupName, 'success');
-        } else {
-            showToast(data.message || 'Error saving members', 'error');
+        try {
+            const data = await Api.saveGroupMembers(currentInstructor, groupName, currentSection, m1, m2, m3, m4, m5, m6);
+            if (data.status !== 'success') {
+                showToast(data.message || 'Error saving members', 'error');
+            }
+        } catch (err) {
+            showToast('Network error', 'error');
         }
-    } catch (err) {
-        showToast('Network error', 'error');
-    }
-}, 600);
+    }, 600);
+}
 
 async function handleToggleGroupStatus(groupName) {
     const btn = document.querySelector(`[data-group="${groupName}"] .btn-toggle-group`);
@@ -2125,7 +2102,6 @@ async function handleToggleGroupStatus(groupName) {
         btn.style.pointerEvents = 'none';
     }
 
-    const card = document.querySelector(`[data-group="${groupName}"]`);
     const isOpen = btn && btn.classList.contains('btn-open');
     const newIsClosed = isOpen ? 1 : 0;
 
@@ -2452,6 +2428,19 @@ function handleLogout(e) {
     currentUserName = null;
     currentInstructor = null;
     currentStudentGroup = null;
+    currentStudentSection = '';
+    currentSection = '';
+    currentMaxScore = 1000;
+    studentRatings = {};
+    studentCurrentGroup = null;
+    studentGroupStatus = {};
+    studentRatingReadOnly = false;
+    liveCriteria = [];
+    studentRatingsData = [];
+    raterListData = [];
+    pdfBusy = false;
+    passwordVisible = false;
+    pendingDeleteGroupName = '';
     document.getElementById('authContainer').style.display = 'flex';
     document.getElementById('dashboard').style.display = 'none';
     document.getElementById('studentDashboard').style.display = 'none';
@@ -2521,7 +2510,7 @@ async function saveEditUsername() {
 function startEditPassword() {
     const td = document.querySelector('#passwordRow .profile-detail-value');
     td.innerHTML = `<div class="inline-edit-group">
-        <input type="text" id="editPasswordInput" class="inline-edit-input" placeholder="New password" aria-label="New password" />
+        <input type="password" id="editPasswordInput" class="inline-edit-input" placeholder="New password" aria-label="New password" />
         <button class="btn-inline-save" onclick="saveEditPassword()" aria-label="Save password"><i class="fas fa-check"></i></button>
         <button class="btn-inline-cancel" onclick="cancelEditPassword()" aria-label="Cancel password edit"><i class="fas fa-times"></i></button>
     </div>`;

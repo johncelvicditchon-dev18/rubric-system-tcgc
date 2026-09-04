@@ -10,7 +10,6 @@ const Api = (() => {
     // LEGACY fallback keys — kept ONLY for backward compatibility when reading old
     // rating docs. The PRIMARY source of criteria is the `rubric_criteria` collection
     // read through getCriteria().
-    const CRITERIA = ['content_accuracy','understanding_topic','organization_structure','delivery_communication','audience_engagement','visual_aids','professional_appearance','teamwork_collaboration','time_allocation','strategies'];
 
     // 10 default criteria seeded into `rubric_criteria` on first load (AC1).
     // Descriptions copied VERBATIM from the rubric table in index.html.
@@ -114,14 +113,6 @@ const Api = (() => {
         return docs.length;
     }
 
-    async function updateWhere(collection, conditions, updates) {
-        const docs = await queryWhere(collection, conditions);
-        for (const d of docs) {
-            await db.collection(collection).doc(d.id).update(updates);
-        }
-        return docs.length;
-    }
-
     async function findGroupByMember(name, section) {
         const nm = String(name || '').trim().toUpperCase();
         const conds = section ? [['section', '==', section]] : [];
@@ -131,12 +122,16 @@ const Api = (() => {
 
     async function renameRaterRatings(oldName, newName, instructor) {
         const docs = await queryWhere(COLL_RATINGS, [['rater_name', '==', oldName], ['instructor', '==', instructor]]);
-        for (const d of docs) {
-            const newData = Object.assign({}, d);
-            delete newData.id;
-            newData.rater_name = newName;
-            await db.collection(COLL_RATINGS).doc(ratingDocId(newName, d.group_name, d.section || '')).set(newData);
-            await db.collection(COLL_RATINGS).doc(d.id).delete();
+        for (let i = 0; i < docs.length; i += 450) {
+            const batch = db.batch();
+            docs.slice(i, i + 450).forEach(d => {
+                const newData = Object.assign({}, d);
+                delete newData.id;
+                newData.rater_name = newName;
+                batch.set(db.collection(COLL_RATINGS).doc(ratingDocId(newName, d.group_name, d.section || '')), newData);
+                batch.delete(db.collection(COLL_RATINGS).doc(d.id));
+            });
+            await batch.commit();
         }
     }
 
@@ -308,31 +303,39 @@ const Api = (() => {
                     if (dup) return { status: 'error', message: 'Section name already exists' };
 
                     const oldGroups = await queryWhere(COLL_GROUPS, [['instructor', '==', instructor], ['section', '==', section_name]]);
-                    for (const g of oldGroups) {
-                        const newId = groupDocId(instructor, new_section_name, g.group_name);
-                        if (g.id === newId) {
-                            await db.collection(COLL_GROUPS).doc(g.id).update({ section: new_section_name });
-                        } else {
-                            const newData = Object.assign({}, g);
-                            delete newData.id;
-                            newData.section = new_section_name;
-                            await db.collection(COLL_GROUPS).doc(newId).set(newData);
-                            await db.collection(COLL_GROUPS).doc(g.id).delete();
-                        }
+                    for (let i = 0; i < oldGroups.length; i += 450) {
+                        const batch = db.batch();
+                        oldGroups.slice(i, i + 450).forEach(g => {
+                            const newId = groupDocId(instructor, new_section_name, g.group_name);
+                            if (g.id === newId) {
+                                batch.update(db.collection(COLL_GROUPS).doc(g.id), { section: new_section_name });
+                            } else {
+                                const newData = Object.assign({}, g);
+                                delete newData.id;
+                                newData.section = new_section_name;
+                                batch.set(db.collection(COLL_GROUPS).doc(newId), newData);
+                                batch.delete(db.collection(COLL_GROUPS).doc(g.id));
+                            }
+                        });
+                        await batch.commit();
                     }
 
                     const oldRatings = await queryWhere(COLL_RATINGS, [['instructor', '==', instructor], ['section', '==', section_name]]);
-                    for (const r of oldRatings) {
-                        const newId = ratingDocId(r.rater_name, r.group_name, new_section_name);
-                        if (r.id === newId) {
-                            await db.collection(COLL_RATINGS).doc(r.id).update({ section: new_section_name });
-                        } else {
-                            const newData = Object.assign({}, r);
-                            delete newData.id;
-                            newData.section = new_section_name;
-                            await db.collection(COLL_RATINGS).doc(newId).set(newData);
-                            await db.collection(COLL_RATINGS).doc(r.id).delete();
-                        }
+                    for (let i = 0; i < oldRatings.length; i += 450) {
+                        const batch = db.batch();
+                        oldRatings.slice(i, i + 450).forEach(r => {
+                            const newId = ratingDocId(r.rater_name, r.group_name, new_section_name);
+                            if (r.id === newId) {
+                                batch.update(db.collection(COLL_RATINGS).doc(r.id), { section: new_section_name });
+                            } else {
+                                const newData = Object.assign({}, r);
+                                delete newData.id;
+                                newData.section = new_section_name;
+                                batch.set(db.collection(COLL_RATINGS).doc(newId), newData);
+                                batch.delete(db.collection(COLL_RATINGS).doc(r.id));
+                            }
+                        });
+                        await batch.commit();
                     }
 
                     const newSecId = sectionDocId(instructor, new_section_name);
@@ -496,7 +499,11 @@ const Api = (() => {
                     await db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, group_name)).set(data);
                 }
             } else if (existing) {
-                await db.collection(COLL_GROUPS).doc(existing.id).delete();
+                // Clear members but keep the document (preserves is_closed state)
+                await db.collection(COLL_GROUPS).doc(existing.id).update({
+                    member1_name: '', member2_name: '', member3_name: '',
+                    member4_name: '', member5_name: '', member6_name: ''
+                });
             }
             return { status: 'success', message: 'Members saved successfully' };
         },
@@ -541,6 +548,9 @@ const Api = (() => {
                     instructor = grp.instructor;
                     if (!section) section = grp.section || '';
                 }
+            }
+            if (!instructor) {
+                return { status: 'error', message: 'Could not determine instructor for this rating' };
             }
             const s = payload.scores || {};
             const data = {
