@@ -96,6 +96,12 @@ body {
   color: white;
 }
 
+/* Scroll hint for tables on mobile */
+@keyframes scrollHint {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(6px); }
+}
+
 /* ========== KEYFRAMES ========== */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
@@ -1327,10 +1333,12 @@ body {
 .account-card-desc strong { color: var(--red-600); }
 .pending-count-badge { background: var(--amber-500); color: white; font-size: 11px; font-weight: 800; padding: 2px 10px; border-radius: var(--radius-full); min-width: 24px; text-align: center; margin-left: 8px; }
 
-/* Student Table */
+/* Student Table — scrollable wrapper for all admin tables */
 .table-container {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  border-radius: var(--radius-md);
 }
 
 #studentRatingsTable {
@@ -1407,7 +1415,7 @@ body {
 .total-row td:nth-child(2) { color: var(--green-800); text-align: left; padding: 14px 14px; }
 .total-row td:nth-child(n+3) { text-align: center; color: var(--green-700); }
 
-.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
 
 /* Min-widths so tables scroll inside .table-container instead of overflowing the page — contract §2.3 */
 #criteriaTable { min-width: 900px; }
@@ -3153,10 +3161,142 @@ body {
 .btn-pdf i { font-size: 14px; }
 .card-header .btn-pdf:first-child { margin-left: 12px; }
 
+/* ========== RESPONSIVE TABLES (all admin dashboard tables) ========== */
+/* Constrain card-body so overflow-x: auto on .table-container works */
+.card-body { overflow-x: hidden; }
+
+/* Scroll hint gradient on .table-container when overflowing */
+.table-container {
+  position: relative;
+}
+.table-container::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.9));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 2;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+@media (max-width: 768px) {
+  .table-container::after { opacity: 1; }
+}
+
+/* Criteria table responsive */
+#criteriaTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+#criteriaTable th,
+#criteriaTable td {
+  vertical-align: top;
+}
+
+/* Sections table responsive */
+#sectionsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Admin group results: ensure cards don't overflow */
+#adminGroupResults {
+  overflow-x: hidden;
+}
+
 /* ========== RESPONSIVE (instructor dashboard: account hero, profile dropdown, group results) ========== */
-@media (max-width: 1024px) { .admin-card-header { flex-wrap: wrap; gap: 8px; } .admin-card-actions { gap: 8px; } .admin-member-inputs { grid-template-columns: 1fr 1fr; } .btn-delete-group { padding: 5px 10px; font-size: 10px; } }
-@media (max-width: 768px) { .admin-member-inputs { grid-template-columns: 1fr; } .profile-hero-header { flex-direction: column; text-align: center; padding: 24px 20px; gap: 16px; } .profile-hero-header::before { display: none; } .profile-avatar-circle { width: 56px; height: 56px; font-size: 20px; } .profile-hero-text { align-items: center; } .profile-name-display { font-size: 24px; } .profile-detail-row { grid-template-columns: 140px 1fr auto; padding: 14px 20px; } .profile-detail-label { font-size: 10px; } .profile-detail-value { font-size: 13px; } .profile-edit-btn { min-height: 38px; } .account-card-header, .account-card-header-danger { padding: 12px 16px; } .admin-card-header { padding: 12px 14px; } .admin-card-actions { flex-wrap: wrap; gap: 6px; } .admin-total-score { font-size: 13px; } .admin-group-card, .admin-group-card:first-child, .admin-group-card:last-child { border-radius: var(--radius-md); } .btn-delete-group { width: 100%; } .btn-add-group { font-size: 13px; padding: 14px 16px; } }
-@media (max-width: 480px) { .profile-hero-header { padding: 20px 16px; } .profile-avatar-circle { width: 48px; height: 48px; font-size: 18px; } .profile-name-display { font-size: 20px; letter-spacing: 1px; } .profile-role-pill, .profile-status-pill { font-size: 9px; padding: 3px 10px; } .profile-detail-row { grid-template-columns: 1fr; gap: 4px; padding: 10px 12px; position: relative; } .profile-detail-row .profile-edit-btn { position: absolute; right: 12px; top: 10px; } .profile-detail-label { font-size: 10px; letter-spacing: 0.5px; } .profile-detail-value { font-size: 12px; padding-right: 48px; } .admin-member-inputs { grid-template-columns: 1fr; } .admin-card-header { padding: 10px 12px; } .admin-card-title h4 { font-size: 14px; } .admin-card-body { padding: 10px 12px; } .admin-member-input { padding: 8px 10px; font-size: 12px; } .admin-total-score { font-size: 12px; } .btn-toggle-group { padding: 5px 10px; font-size: 10px; } .account-card-body { padding: 12px; } .account-card .btn-success, .account-card .btn-danger { width: 100%; text-align: center; } .btn-delete-group { padding: 8px 12px; font-size: 11px; } .btn-add-group { font-size: 12px; padding: 12px 14px; } }
+@media (max-width: 1024px) {
+  .admin-card-header { flex-wrap: wrap; gap: 8px; }
+  .admin-card-actions { gap: 8px; }
+  .admin-member-inputs { grid-template-columns: 1fr 1fr; }
+  .btn-delete-group { padding: 5px 10px; font-size: 10px; }
+  .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+@media (max-width: 768px) {
+  .admin-member-inputs { grid-template-columns: 1fr; }
+  .profile-hero-header { flex-direction: column; text-align: center; padding: 24px 20px; gap: 16px; }
+  .profile-hero-header::before { display: none; }
+  .profile-avatar-circle { width: 56px; height: 56px; font-size: 20px; }
+  .profile-hero-text { align-items: center; }
+  .profile-name-display { font-size: 24px; }
+  .profile-detail-row { grid-template-columns: 140px 1fr auto; padding: 14px 20px; }
+  .profile-detail-label { font-size: 10px; }
+  .profile-detail-value { font-size: 13px; }
+  .profile-edit-btn { min-height: 38px; }
+  .account-card-header, .account-card-header-danger { padding: 12px 16px; }
+  .admin-card-header { padding: 12px 14px; }
+  .admin-card-actions { flex-wrap: wrap; gap: 6px; }
+  .admin-total-score { font-size: 13px; }
+  .admin-group-card, .admin-group-card:first-child, .admin-group-card:last-child { border-radius: var(--radius-md); }
+  .btn-delete-group { width: 100%; }
+  .btn-add-group { font-size: 13px; padding: 14px 16px; }
+
+  /* Tables: ensure horizontal scroll works on tablets */
+  .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+  #studentRatingsTable { min-width: 720px; }
+  #raterListTable { min-width: 560px; }
+  #criteriaTable { min-width: 700px; }
+  #sectionsTable { min-width: 420px; }
+  #criteriaTable th, #criteriaTable td { padding: 8px 6px; font-size: 11px; }
+  #sectionsTable th, #sectionsTable td { padding: 8px 6px; font-size: 12px; }
+}
+
+@media (max-width: 480px) {
+  .profile-hero-header { padding: 20px 16px; }
+  .profile-avatar-circle { width: 48px; height: 48px; font-size: 18px; }
+  .profile-name-display { font-size: 20px; letter-spacing: 1px; }
+  .profile-role-pill, .profile-status-pill { font-size: 9px; padding: 3px 10px; }
+  .profile-detail-row { grid-template-columns: 1fr; gap: 4px; padding: 10px 12px; position: relative; }
+  .profile-detail-row .profile-edit-btn { position: absolute; right: 12px; top: 10px; }
+  .profile-detail-label { font-size: 10px; letter-spacing: 0.5px; }
+  .profile-detail-value { font-size: 12px; padding-right: 48px; }
+  .admin-member-inputs { grid-template-columns: 1fr; }
+  .admin-card-header { padding: 10px 12px; }
+  .admin-card-title h4 { font-size: 14px; }
+  .admin-card-body { padding: 10px 12px; }
+  .admin-member-input { padding: 8px 10px; font-size: 12px; }
+  .admin-total-score { font-size: 12px; }
+  .btn-toggle-group { padding: 5px 10px; font-size: 10px; }
+  .account-card-body { padding: 12px; }
+  .account-card .btn-success, .account-card .btn-danger { width: 100%; text-align: center; }
+  .btn-delete-group { padding: 8px 12px; font-size: 11px; }
+  .btn-add-group { font-size: 12px; padding: 12px 14px; }
+
+  /* Tables: force horizontal scroll, reduce min-widths */
+  .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+  #studentRatingsTable { min-width: 620px; font-size: 10px; }
+  #raterListTable { min-width: 480px; font-size: 10px; }
+  #criteriaTable { min-width: 600px; font-size: 10px; }
+  #sectionsTable { min-width: 360px; font-size: 11px; }
+  #criteriaTable th { font-size: 9px; padding: 6px 4px; letter-spacing: 0.3px; }
+  #criteriaTable td { padding: 6px 4px; font-size: 10px; }
+  #sectionsTable th { font-size: 10px; padding: 6px 4px; }
+  #sectionsTable td { padding: 6px 4px; font-size: 11px; }
+  .section-edit-input { font-size: 11px; padding: 5px 8px; }
+
+  /* Account table mobile */
+  .account-table { font-size: 12px; }
+  .account-table th { font-size: 10px; padding: 10px 8px; }
+  .account-table td { padding: 8px 8px; font-size: 11px; }
+
+  /* Modal tables */
+  .modal-table { font-size: 11px; }
+  .modal-table th { font-size: 9px; padding: 6px 4px; }
+  .modal-table td { padding: 6px 4px; font-size: 10px; }
+
+  /* Criteria table: add row inputs stack vertically on very small screens */
+  #addCriterionRow td { padding: 4px 2px; }
+  #addCriterionRow .section-edit-input { font-size: 10px; padding: 4px 6px; min-width: 0; }
+  #addCriterionRow .btn { font-size: 10px; padding: 4px 8px; white-space: nowrap; }
+
+  /* Sections table: input sizing */
+  #sectionsTable .section-edit-input { font-size: 11px; padding: 5px 8px; }
+}
 
 /* ========== UTILITIES (contract §7) ========== */
 /* NOTE: .u-hidden intentionally does NOT use !important so that JS inline
