@@ -825,7 +825,7 @@ function renderStudentRatingsRows(tbody, tfoot, ratings) {
     for (let i = 1; i <= 10; i++) colTotals['GROUP ' + i] = 0;
 
     ratings.forEach((r, i) => {
-        bodyHtml += `<tr><td class="num-cell">${i + 1}</td><td class="name-cell"><a href="#" onclick="openStudentDetail('${r.name.replace(/'/g, "\\'")}', event)">${r.name}</a></td>`;
+        bodyHtml += `<tr><td class="num-cell">${i + 1}</td><td class="name-cell"><a href="#" onclick="openStudentDetail('${escHtml(r.name).replace(/'/g, "&#39;")}', event)">${escHtml(r.name)}</a></td>`;
         for (let g = 1; g <= 10; g++) {
             const gn = 'GROUP ' + g;
             const score = r[gn];
@@ -1402,7 +1402,7 @@ async function drawRaterListPDF(doc, raters) {
 
     const rows = (raters || []).map(function (r, idx) {
         const row = [idx + 1, r.name];
-        for (let g = 1; g <= 10; g++) row.push(r);
+        for (let g = 1; g <= 10; g++) row.push(r['GROUP ' + g] || null);
         return row;
     });
 
@@ -1410,8 +1410,7 @@ async function drawRaterListPDF(doc, raters) {
         zebra: true,
         leftIdx: 1,
         markFn: function (doc, cx, cy, ci, cell) {
-            const g = ci - 1;
-            if (cell && cell['GROUP ' + g]) drawMarks(doc, cx, cy);
+            if (cell) drawMarks(doc, cx, cy);
             else drawMiss(doc, cx, cy);
         }
     });
@@ -1606,7 +1605,7 @@ function renderRaterList(raters) {
 function renderRaterListRows(tbody, data) {
     let bodyHtml = '';
     data.forEach((r, i) => {
-        bodyHtml += `<tr><td class="num-cell">${i + 1}</td><td class="name-cell">${r.name}</td>`;
+        bodyHtml += `<tr><td class="num-cell">${i + 1}</td><td class="name-cell">${escHtml(r.name)}</td>`;
         for (let g = 1; g <= 10; g++) {
             const voted = r['GROUP ' + g];
             if (voted) {
@@ -1647,12 +1646,14 @@ async function loadSectionsManagement() {
             noData.style.display = 'none';
             tbody.innerHTML = data.sections.map(s => {
                 const sid = s.section_name.replace(/[^a-zA-Z0-9_-]/g, '_');
+                const safeName = escHtml(s.section_name);
+                const safeId = escHtml(sid);
                 return `<tr>
-                    <td><input type="text" id="sec_name_${sid}" value="${s.section_name}" class="section-edit-input" aria-label="Section name"></td>
-                    <td><input type="number" id="sec_max_${sid}" value="${s.max_score || 1000}" class="section-edit-input section-number-input" aria-label="Maximum score"></td>
+                    <td><input type="text" id="sec_name_${safeId}" value="${safeName}" class="section-edit-input" aria-label="Section name"></td>
+                    <td><input type="number" id="sec_max_${safeId}" value="${s.max_score || 1000}" class="section-edit-input section-number-input" aria-label="Maximum score"></td>
                     <td>
-                        <button class="btn btn-success btn-sm" onclick="saveSectionRow('${s.section_name}')" aria-label="Save section"><i class="fas fa-save"></i></button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteSectionRow('${s.section_name}')" aria-label="Delete section"><i class="fas fa-trash"></i></button>
+                        <button class="btn btn-success btn-sm" onclick="saveSectionRow(this.dataset.name)" data-name="${safeName}" aria-label="Save section"><i class="fas fa-save"></i></button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteSectionRow(this.dataset.name)" data-name="${safeName}" aria-label="Delete section"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
             }).join('');
@@ -1741,7 +1742,7 @@ async function loadCriteriaManagement() {
         if (noData) noData.style.display = 'none';
 
         tbody.innerHTML = criteria.map((c, i) => {
-            const rid = c.id;
+            const rid = escHtml(c.id);
             const n = criteria.length;
             const upBtn = i > 0
                 ? `<button class="btn btn-sm" onclick="moveCriterion('${rid}', -1)" aria-label="Move criterion up"><i class="fas fa-arrow-up"></i></button>`
@@ -1960,12 +1961,12 @@ function renderAdminGroupResults(groups, hasSections) {
             <div class="admin-card-body">
                 <label class="admin-member-label">Members (Optional)</label>
                 <div class="admin-member-inputs">
-                    <input type="text" class="admin-member-input u-text-upper" id="member1_${gn.replace(' ', '_')}" placeholder="Member 1" aria-label="Member 1" value="${grp.member1_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
-                    <input type="text" class="admin-member-input u-text-upper" id="member4_${gn.replace(' ', '_')}" placeholder="Member 4" aria-label="Member 4" value="${grp.member4_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
-                    <input type="text" class="admin-member-input u-text-upper" id="member2_${gn.replace(' ', '_')}" placeholder="Member 2" aria-label="Member 2" value="${grp.member2_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
-                    <input type="text" class="admin-member-input u-text-upper" id="member5_${gn.replace(' ', '_')}" placeholder="Member 5" aria-label="Member 5" value="${grp.member5_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
-                    <input type="text" class="admin-member-input u-text-upper" id="member3_${gn.replace(' ', '_')}" placeholder="Member 3" aria-label="Member 3" value="${grp.member3_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
-                    <input type="text" class="admin-member-input u-text-upper" id="member6_${gn.replace(' ', '_')}" placeholder="Member 6" aria-label="Member 6" value="${grp.member6_name}" oninput="debouncedSaveMembers('${gn}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member1_${gn.replace(' ', '_')}" placeholder="Member 1" aria-label="Member 1" value="${escHtml(grp.member1_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member4_${gn.replace(' ', '_')}" placeholder="Member 4" aria-label="Member 4" value="${escHtml(grp.member4_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member2_${gn.replace(' ', '_')}" placeholder="Member 2" aria-label="Member 2" value="${escHtml(grp.member2_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member5_${gn.replace(' ', '_')}" placeholder="Member 5" aria-label="Member 5" value="${escHtml(grp.member5_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member3_${gn.replace(' ', '_')}" placeholder="Member 3" aria-label="Member 3" value="${escHtml(grp.member3_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member6_${gn.replace(' ', '_')}" placeholder="Member 6" aria-label="Member 6" value="${escHtml(grp.member6_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}>
                 </div>
             </div>
         </div>`;
@@ -2094,7 +2095,7 @@ function debounce(fn, delay) {
 
 const debouncedSaveMembers = debounce(async (groupName) => {
     if (!currentSection) { showToast('Create a section first to add members', 'warning'); return; }
-    const key = groupName.replace(' ', '_');
+    const key = groupName.replace(/ /g, '_');
     const m1 = document.getElementById(`member1_${key}`).value.trim();
     const m2 = document.getElementById(`member2_${key}`).value.trim();
     const m3 = document.getElementById(`member3_${key}`).value.trim();
@@ -2193,11 +2194,11 @@ async function loadPendingAccounts() {
             noData.style.display = 'none';
             tbody.innerHTML = data.accounts.map(a => `
                 <tr>
-                    <td>${a.instructor_name}</td>
-                    <td>${a.username}</td>
+                    <td>${escHtml(a.instructor_name)}</td>
+                    <td>${escHtml(a.username)}</td>
                     <td>
-                        <button class="btn-approve" onclick="approveAccount('${a.id}')"><i class="fas fa-check"></i> Approve</button>
-                        <button class="btn-delete" onclick="deletePendingAccount('${a.id}')"><i class="fas fa-trash"></i> Delete</button>
+                        <button class="btn-approve" onclick="approveAccount('${escHtml(a.id)}')"><i class="fas fa-check"></i> Approve</button>
+                        <button class="btn-delete" onclick="deletePendingAccount('${escHtml(a.id)}')"><i class="fas fa-trash"></i> Delete</button>
                     </td>
                 </tr>
             `).join('');
@@ -2482,7 +2483,7 @@ function startEditUsername() {
     const td = document.getElementById('accountUsernameView');
     const current = sessionStorage.getItem('accountUsername') || '';
     td.innerHTML = `<div class="inline-edit-group">
-        <input type="text" id="editUsernameInput" class="inline-edit-input" value="${current}" aria-label="Edit username" />
+        <input type="text" id="editUsernameInput" class="inline-edit-input" value="${escHtml(current)}" aria-label="Edit username" />
         <button class="btn-inline-save" onclick="saveEditUsername()" aria-label="Save username"><i class="fas fa-check"></i></button>
         <button class="btn-inline-cancel" onclick="cancelEditUsername()" aria-label="Cancel username edit"><i class="fas fa-times"></i></button>
     </div>`;

@@ -96,12 +96,6 @@ body {
   color: white;
 }
 
-/* Scroll hint for tables on mobile */
-@keyframes scrollHint {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(6px); }
-}
-
 /* ========== KEYFRAMES ========== */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
