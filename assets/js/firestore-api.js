@@ -429,6 +429,11 @@ const Api = (() => {
 
         async removeGroup(instructor, section, groupName) {
             if (!instructor || !groupName) return { status: 'error', message: 'instructor and groupName required' };
+            const fixedMatch = String(groupName || '').match(/^GROUP\s+(\d+)$/i);
+            const fixedNum = fixedMatch ? parseInt(fixedMatch[1], 10) : NaN;
+            if (fixedNum >= 1 && fixedNum <= 10) {
+                return { status: 'error', message: groupName + ' cannot be deleted. Groups 1-10 are fixed.' };
+            }
             const docs = await queryWhere(COLL_GROUPS, [['instructor', '==', instructor], ['group_name', '==', groupName]]);
             const existing = pickGroupDoc(docs, instructor, section, groupName);
             if (existing) {

@@ -1626,6 +1626,25 @@ body {
   box-shadow: 0 2px 8px rgba(220,38,38,0.2);
 }
 
+/* Fixed Group Badge (Groups 1-10 are undeletable) */
+.fixed-group-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--neutral-200);
+  background: var(--neutral-100);
+  color: var(--neutral-500);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  cursor: default;
+}
+.fixed-group-badge i { margin-right: 4px; }
+
 /* Delete Group Modal Confirm Button Disabled State */
 #confirmDeleteGroupBtn:disabled {
   opacity: 0.5;

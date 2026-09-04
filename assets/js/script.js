@@ -203,6 +203,16 @@ const RUBRIC_CRITERIA = [
 let GROUPS = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
 let pendingDeleteGroupName = '';
 
+// Groups 1-10 are permanent and cannot be deleted. Group 11+ (added via
+// "Add Another Group") are deletable.
+const FIXED_GROUP_COUNT = 10;
+function isFixedGroup(groupName) {
+    const m = String(groupName || '').match(/^GROUP\s+(\d+)$/i);
+    if (!m) return false;
+    const n = parseInt(m[1], 10);
+    return n >= 1 && n <= FIXED_GROUP_COUNT;
+}
+
 // ========== INIT ==========
 window.addEventListener('DOMContentLoaded', function() {
     initAuth();
@@ -1926,6 +1936,12 @@ function renderAdminGroupResults(groups, hasSections) {
         const totalScore = grp.total_score;
         const numRatings = grp.num_ratings;
         const isOpen = grp.is_closed === 0;
+        const fixed = isFixedGroup(gn);
+        const deleteBtnHtml = fixed
+            ? '<span class="fixed-group-badge" title="Groups 1-10 cannot be deleted"><i class="fas fa-thumbtack"></i> FIXED</span>'
+            : `<button class="btn-delete-group" onclick="handleDeleteGroup('${gn}')" title="Delete ${gn}">
+                        <i class="fas fa-trash-alt"></i> Delete
+                    </button>`;
 
         html += `<div class="admin-group-card" data-group="${gn}">
             <div class="admin-card-header">
@@ -1938,9 +1954,7 @@ function renderAdminGroupResults(groups, hasSections) {
                     <button class="btn-toggle-group ${isOpen ? 'btn-open' : 'btn-closed'}" onclick="handleToggleGroupStatus('${gn}')">
                         <i class="fas fa-${isOpen ? 'unlock' : 'lock'}"></i> ${isOpen ? 'OPEN' : 'CLOSED'}
                     </button>
-                    <button class="btn-delete-group" onclick="handleDeleteGroup('${gn}')" title="Delete ${gn}">
-                        <i class="fas fa-trash-alt"></i> Delete
-                    </button>
+                    ${deleteBtnHtml}
                 </div>
             </div>
             <div class="admin-card-body">
@@ -1993,6 +2007,10 @@ async function handleAddGroup() {
 }
 
 function handleDeleteGroup(groupName) {
+    if (isFixedGroup(groupName)) {
+        showToast(groupName + ' cannot be deleted. Groups 1-10 are fixed.', 'error');
+        return;
+    }
     pendingDeleteGroupName = groupName;
     document.getElementById('deleteGroupNameDisplay').textContent = groupName;
     const input = document.getElementById('deleteInstructorConfirm');
@@ -2038,6 +2056,11 @@ function closeDeleteGroupModal(e) {
 async function confirmDeleteGroup() {
     if (!pendingDeleteGroupName) return;
     const groupName = pendingDeleteGroupName;
+    if (isFixedGroup(groupName)) {
+        showToast(groupName + ' cannot be deleted. Groups 1-10 are fixed.', 'error');
+        closeDeleteGroupModal();
+        return;
+    }
     const btn = document.getElementById('confirmDeleteGroupBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
