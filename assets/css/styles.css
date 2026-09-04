@@ -108,8 +108,8 @@ body {
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
 @keyframes bgShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 @keyframes ringPulse { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.05); } }
-@keyframes toastIn { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
-@keyframes toastOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(12px); } }
+@keyframes toastIn { from { opacity: 0; transform: translateY(-14px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes toastOut { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-14px) scale(0.98); } }
 @keyframes toastProgress { from { width: 100%; } to { width: 0%; } }
 @keyframes overlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes overlayFadeOut { from { opacity: 1; } to { opacity: 0; } }
@@ -2413,13 +2413,17 @@ body {
 /* ========== TOASTS ========== */
 .toast-container {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  top: 22px;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  transform: translateX(-50%);
   z-index: 4000;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 10px;
-  width: min(400px, calc(100vw - 48px));
+  width: min(440px, calc(100vw - 32px));
   pointer-events: none;
 }
 .toast {
@@ -2429,19 +2433,23 @@ body {
   align-items: flex-start;
   gap: 12px;
   width: 100%;
-  background: var(--white);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--neutral-200);
   border-left: 4px solid var(--neutral-400);
-  border-radius: var(--radius-md);
-  padding: 12px 42px 14px 14px;
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-lg);
+  padding: 14px 44px 14px 16px;
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.18),
+    0 4px 14px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   animation: toastIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .toast.toast-hide { animation: toastOut 0.25s ease forwards; }
 .toast-icon {
   flex-shrink: 0;
-  width: 34px; height: 34px;
+  width: 38px; height: 38px;
   margin-top: 1px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -2450,7 +2458,7 @@ body {
 }
 .toast-content { flex: 1; min-width: 0; padding-top: 5px; }
 .toast-message {
-  font-size: 13px; font-weight: 600;
+  font-size: 13.5px; font-weight: 600;
   color: var(--neutral-800);
   line-height: 1.45;
   word-break: break-word;
@@ -2504,9 +2512,12 @@ body {
   overflow-y: auto;
   background: var(--white);
   border-radius: var(--radius-lg);
+  border: 1px solid var(--neutral-200);
   padding: 30px 26px 24px;
   text-align: center;
-  box-shadow: var(--shadow-xl);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.22),
+    0 8px 20px rgba(0, 0, 0, 0.10);
   animation: dialogPopIn 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .ui-dialog-overlay.ui-dialog-closing .ui-dialog { animation: dialogPopOut 0.2s ease forwards; }
@@ -2516,7 +2527,10 @@ body {
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: 28px; color: #fff;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.8),
+    0 0 0 6px var(--green-100),
+    0 8px 24px rgba(0,0,0,0.15);
 }
 .ui-dialog-icon-success { background: linear-gradient(135deg, var(--green-500), var(--green-700)); }
 .ui-dialog-icon-error { background: linear-gradient(135deg, var(--red-500), var(--red-800)); }
@@ -2684,7 +2698,7 @@ body {
 
   .dropdown-menu { right: -10px; min-width: 200px; }
 
-  .toast-container { left: 10px; right: 10px; bottom: 10px; width: auto; }
+  .toast-container { top: 12px; left: 50%; right: auto; bottom: auto; transform: translateX(-50%); width: calc(100vw - 24px); }
   .ui-dialog { max-width: 92vw; }
   /* Safe-area insets for dev FAB at mobile */
   .dev-fab {
@@ -2900,7 +2914,7 @@ body {
   .detail-criteria-name { font-size: 11px; min-width: 100%; }
   .detail-dot { width: 22px; height: 22px; font-size: 9px; }
 
-  .toast-container { left: 8px; right: 8px; bottom: 8px; }
+  .toast-container { top: 10px; left: 50%; right: auto; bottom: auto; transform: translateX(-50%); width: calc(100vw - 20px); }
   .ui-dialog { padding: 24px 16px 18px; }
   .ui-dialog-icon { width: 56px; height: 56px; font-size: 24px; }
   .ui-dialog-title { font-size: 19px; }
