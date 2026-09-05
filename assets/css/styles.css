@@ -1532,25 +1532,43 @@ body {
 .admin-total-score { font-weight: 800; font-size: 15px; color: var(--green-700); background: var(--green-100); padding: 4px 12px; border-radius: var(--radius-full); }
 
 .btn-toggle-group {
-  padding: 6px 16px;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  font-weight: 700;
-  font-size: 11px;
-  cursor: pointer;
-  transition: all var(--transition);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+    padding: 6px 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    font-weight: 700;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all var(--transition);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 .btn-toggle-group:disabled {
-  cursor: not-allowed;
-  pointer-events: none;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 .btn-toggle-group i { margin-right: 4px; }
 .btn-open { background: var(--green-50); color: var(--green-700); border-color: var(--green-200); }
 .btn-open:hover { background: var(--green-100); border-color: var(--green-400); }
 .btn-closed { background: var(--red-50); color: var(--red-600); border-color: var(--red-100); }
 .btn-closed:hover { background: var(--red-50); border-color: var(--red-500); }
+
+/* Member lock/unlock buttons */
+.btn-lock-members {
+    padding: 6px 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    font-weight: 700;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all var(--transition);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.btn-lock-members i { margin-right: 4px; }
+.btn-unlocked { background: var(--green-50); color: var(--green-700); border-color: var(--green-200); }
+.btn-unlocked:hover { background: var(--green-100); border-color: var(--green-400); }
+.btn-locked { background: var(--amber-50); color: var(--amber-600); border-color: var(--amber-600); }
+.btn-locked:hover { background: var(--amber-600); border-color: var(--red-500); }
 
 .admin-card-body { padding: 16px 20px; }
 
