@@ -5,6 +5,7 @@ let currentStudentGroup = null;
 let currentStudentSection = '';
 let currentSection = '';
 let currentMaxScore = 1000;
+let sectionMembersLocked = false;
 let studentRatings = {};
 let studentCurrentGroup = null;
 let studentGroupStatus = {};
@@ -1865,6 +1866,13 @@ async function moveCriterion(id, dir) {
 
 // ========== ADMIN: GROUP RESULTS ==========
 async function loadAdminGroupResults() {
+    // Fetch section config to determine member registration lock state
+    try {
+        const secData = await Api.getSectionConfig(currentInstructor, currentSection);
+        if (secData.status === 'success') sectionMembersLocked = secData.members_locked || false;
+    } catch (e) {
+        sectionMembersLocked = false;
+    }
     const badge = document.getElementById('groupResultsSectionBadge');
     if (badge) badge.textContent = currentSection ? 'SECTION: ' + currentSection : '';
     try {
@@ -1905,21 +1913,20 @@ function renderAdminGroupResults(groups, hasSections) {
     const grid = document.getElementById('adminGroupResults');
     if (!grid) return;
 
-    const canAddMembers = hasSections === true;
-    const memberInputDisabled = canAddMembers ? '' : ' disabled';
+    const memberInputDisabled = sectionMembersLocked ? ' disabled' : '';
 
     let html = '';
-    if (!canAddMembers) {
+    if (!hasSections) {
         html += '<div class="no-sections-banner">Create a section first to add members.</div>';
     }
+    // Section-wide lock/unlock bar
+    html += `<div class="section-lock-bar"><span class="section-lock-label"><i class="fas fa-user-lock"></i> MEMBER REGISTRATION: ${sectionMembersLocked ? 'LOCKED' : 'OPEN'}</span><button class="btn-section-lock ${sectionMembersLocked ? 'btn-locked' : 'btn-unlocked'}" onclick="handleToggleSectionMembersLock()" ${!currentSection ? 'disabled' : ''}><i class="fas fa-${sectionMembersLocked ? 'unlock' : 'lock'}"></i> ${sectionMembersLocked ? 'UNLOCK ALL' : 'LOCK ALL'}</button></div>`;
     GROUPS.forEach(gn => {
-        const grp = groups[gn] || { member1_name: '', member2_name: '', member3_name: '', member4_name: '', member5_name: '', member6_name: '', is_closed: 0, members_locked: 0, total_score: 0, num_ratings: 0 };
+        const grp = groups[gn] || { member1_name: '', member2_name: '', member3_name: '', member4_name: '', member5_name: '', member6_name: '', is_closed: 0, total_score: 0, num_ratings: 0 };
 
         const totalScore = grp.total_score;
         const numRatings = grp.num_ratings;
         const isOpen = grp.is_closed === 0;
-        const membersLocked = grp.members_locked === 1;
-        const lockDisabled = membersLocked ? ' disabled' : '';
         const fixed = isFixedGroup(gn);
         const deleteBtnHtml = fixed
             ? '<span class="fixed-group-badge" title="Groups 1-10 cannot be deleted"><i class="fas fa-thumbtack"></i> FIXED</span>'
@@ -1938,19 +1945,18 @@ function renderAdminGroupResults(groups, hasSections) {
                     <button class="btn-toggle-group ${isOpen ? 'btn-open' : 'btn-closed'}" onclick="handleToggleGroupStatus('${gn}')">
                         <i class="fas fa-${isOpen ? 'unlock' : 'lock'}"></i> ${isOpen ? 'OPEN' : 'CLOSED'}
                     </button>
-                    <button class="btn-lock-members ${membersLocked ? 'btn-locked' : 'btn-unlocked'}" onclick="handleToggleMembersLock('${gn}')" title="Toggle member registration lock"><i class="fas fa-${membersLocked ? 'lock' : 'unlock'}"></i> ${membersLocked ? 'LOCKED' : 'UNLOCKED'}</button>
                     ${deleteBtnHtml}
                 </div>
             </div>
             <div class="admin-card-body">
                 <label class="admin-member-label">Members (Optional)</label>
                 <div class="admin-member-inputs">
-                    <input type="text" class="admin-member-input u-text-upper" id="member1_${gn.replace(' ', '_')}" placeholder="Member 1" aria-label="Member 1" value="${escHtml(grp.member1_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}${lockDisabled}>
-                    <input type="text" class="admin-member-input u-text-upper" id="member4_${gn.replace(' ', '_')}" placeholder="Member 4" aria-label="Member 4" value="${escHtml(grp.member4_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}${lockDisabled}>
-                    <input type="text" class="admin-member-input u-text-upper" id="member2_${gn.replace(' ', '_')}" placeholder="Member 2" aria-label="Member 2" value="${escHtml(grp.member2_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}${lockDisabled}>
-                    <input type="text" class="admin-member-input u-text-upper" id="member5_${gn.replace(' ', '_')}" placeholder="Member 5" aria-label="Member 5" value="${escHtml(grp.member5_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}${lockDisabled}>
-                    <input type="text" class="admin-member-input u-text-upper" id="member3_${gn.replace(' ', '_')}" placeholder="Member 3" aria-label="Member 3" value="${escHtml(grp.member3_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}${lockDisabled}>
-                    <input type="text" class="admin-member-input u-text-upper" id="member6_${gn.replace(' ', '_')}" placeholder="Member 6" aria-label="Member 6" value="${escHtml(grp.member6_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}${lockDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member1_${gn.replace(' ', '_')}" placeholder="Member 1" aria-label="Member 1" value="${escHtml(grp.member1_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member4_${gn.replace(' ', '_')}" placeholder="Member 4" aria-label="Member 4" value="${escHtml(grp.member4_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member2_${gn.replace(' ', '_')}" placeholder="Member 2" aria-label="Member 2" value="${escHtml(grp.member2_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member5_${gn.replace(' ', '_')}" placeholder="Member 5" aria-label="Member 5" value="${escHtml(grp.member5_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member3_${gn.replace(' ', '_')}" placeholder="Member 3" aria-label="Member 3" value="${escHtml(grp.member3_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}>
+                    <input type="text" class="admin-member-input u-text-upper" id="member6_${gn.replace(' ', '_')}" placeholder="Member 6" aria-label="Member 6" value="${escHtml(grp.member6_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}>
                 </div>
             </div>
         </div>`;
@@ -2077,6 +2083,7 @@ function debouncedSaveMembers(groupName) {
     if (_memberTimers[groupName]) clearTimeout(_memberTimers[groupName]);
     _memberTimers[groupName] = setTimeout(async () => {
         if (!currentSection) return;
+        if (sectionMembersLocked) return;
         const key = groupName.replace(/ /g, '_');
         const member1 = document.getElementById(`member1_${key}`);
         if (member1 && member1.disabled) return;  // locked or no-section
@@ -2152,9 +2159,13 @@ async function handleToggleGroupStatus(groupName) {
     }
 }
 
-// ========== TOGGLE MEMBERS LOCK ==========
-async function handleToggleMembersLock(groupName) {
-    const btn = document.querySelector(`[data-group="${groupName}"] .btn-lock-members`);
+// ========== SECTION MEMBERS LOCK ==========
+async function handleToggleSectionMembersLock() {
+    if (!currentSection) {
+        showToast('Select a section first', 'error');
+        return;
+    }
+    const btn = document.querySelector('.btn-section-lock');
     if (btn && btn.disabled) return;
     if (btn) {
         btn.disabled = true;
@@ -2163,11 +2174,12 @@ async function handleToggleMembersLock(groupName) {
     }
 
     try {
-        const data = await Api.toggleMembersLock(currentInstructor, groupName, currentSection);
+        const data = await Api.toggleSectionMembersLock(currentInstructor, currentSection);
         if (data.status === 'success') {
+            sectionMembersLocked = data.members_locked;
             loadAdminGroupResults();
         } else {
-            showToast(data.message || 'Error toggling member lock', 'error');
+            showToast(data.message || 'Error toggling section member lock', 'error');
             if (btn) {
                 btn.disabled = false;
                 btn.style.opacity = '';
@@ -2468,6 +2480,7 @@ function handleLogout(e) {
     currentStudentSection = '';
     currentSection = '';
     currentMaxScore = 1000;
+    sectionMembersLocked = false;
     studentRatings = {};
     studentCurrentGroup = null;
     studentGroupStatus = {};

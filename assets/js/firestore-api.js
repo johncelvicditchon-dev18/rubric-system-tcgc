@@ -146,8 +146,7 @@ const Api = (() => {
             member4_name: '',
             member5_name: '',
             member6_name: '',
-            is_closed: 0,
-            members_locked: 0
+            is_closed: 0
         };
     }
 
@@ -283,7 +282,20 @@ const Api = (() => {
         async getSectionConfig(instructor, section_name) {
             if (!instructor || !section_name) return { status: 'error', message: 'instructor and section_name required' };
             const doc = await firstDoc(COLL_SECTIONS, [['instructor', '==', instructor], ['section_name', '==', section_name]]);
-            return { status: 'success', max_score: doc ? (doc.max_score || 1000) : 1000 };
+            return { status: 'success', max_score: doc ? (doc.max_score || 1000) : 1000, members_locked: doc ? (doc.members_locked ? 1 : 0) : 0 };
+        },
+
+        async toggleSectionMembersLock(instructor, section_name) {
+            if (!instructor || !section_name) return { status: 'error', message: 'instructor and section_name required' };
+            const doc = await firstDoc(COLL_SECTIONS, [['instructor', '==', instructor], ['section_name', '==', section_name]]);
+            if (doc) {
+                const newLock = doc.members_locked ? 0 : 1;
+                await db.collection(COLL_SECTIONS).doc(doc.id).update({ members_locked: newLock });
+                return { status: 'success', members_locked: newLock, message: newLock ? 'Member registration locked' : 'Member registration unlocked' };
+            }
+            const data = { instructor, section_name, max_score: 1000, members_locked: 1 };
+            await db.collection(COLL_SECTIONS).doc(sectionDocId(instructor, section_name)).set(data);
+            return { status: 'success', members_locked: 1, message: 'Member registration locked' };
         },
 
         async getAllSections() {
@@ -405,7 +417,6 @@ const Api = (() => {
                     member5_name: g.member5_name || '',
                     member6_name: g.member6_name || '',
                     is_closed: g.is_closed ? 1 : 0,
-                    members_locked: g.members_locked ? 1 : 0,
                     total_score: sum.total,
                     num_ratings: sum.count
                 };
@@ -472,9 +483,10 @@ const Api = (() => {
             const docs = await queryWhere(COLL_GROUPS, [['instructor', '==', instructor], ['group_name', '==', group_name]]);
             const existing = pickGroupDoc(docs, instructor, section, group_name);
 
-            // Server guard: if members are locked for this group
-            if (existing && existing.members_locked) {
-                return { status: 'error', message: 'Members are locked for this group' };
+            const sectionDocs = await queryWhere(COLL_SECTIONS, [['instructor', '==', instructor]]);
+            const sectionDoc = sectionDocs.find(d => d.section_name === section);
+            if (sectionDoc && sectionDoc.members_locked) {
+                return { status: 'error', message: 'Member registration is locked for this section' };
             }
 
             const hasMember = members.some(m => m !== '');
@@ -534,25 +546,6 @@ const Api = (() => {
             return { status: 'success', is_closed: 0, message: 'Group opened' };
         },
 
-        async toggleMembersLock(instructor, group_name, section) {
-            if (!instructor || !group_name) return { status: 'error', message: 'instructor and group_name required' };
-            const docs = await queryWhere(COLL_GROUPS, [['instructor', '==', instructor], ['group_name', '==', group_name]]);
-            const existing = pickGroupDoc(docs, instructor, section, group_name);
-            if (existing) {
-                const newLock = existing.members_locked ? 0 : 1;
-                await db.collection(COLL_GROUPS).doc(existing.id).update({ members_locked: newLock });
-                return { status: 'success', members_locked: newLock, message: newLock ? 'Member registration locked' : 'Member registration unlocked' };
-            }
-            if (section) {
-                const data = emptyGroupData(instructor, section, group_name);
-                data.members_locked = 1;
-                await db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, group_name)).set(data);
-                return { status: 'success', members_locked: 1, message: 'Member registration locked' };
-            }
-            return { status: 'success', members_locked: 0, message: 'Member registration unlocked' };
-        },
-
-        // ===== RATINGS =====
         async getMyRatings(rater_name, section) {
             if (!rater_name) return { status: 'error', message: 'rater_name parameter required' };
             const conds = [['rater_name', '==', rater_name]];

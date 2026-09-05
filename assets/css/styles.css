@@ -1552,23 +1552,51 @@ body {
 .btn-closed { background: var(--red-50); color: var(--red-600); border-color: var(--red-100); }
 .btn-closed:hover { background: var(--red-50); border-color: var(--red-500); }
 
-/* Member lock/unlock buttons */
-.btn-lock-members {
-    padding: 6px 16px;
+/* Section-wide lock/unlock bar */
+.section-lock-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--neutral-50);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-5);
+}
+.section-lock-label {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    color: var(--neutral-600);
+}
+.btn-section-lock {
+    padding: 6px 12px;
     border-radius: var(--radius-sm);
-    border: 1px solid transparent;
+    border: 1px solid var(--neutral-300);
     font-weight: 700;
     font-size: 11px;
     cursor: pointer;
     transition: all var(--transition);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
-.btn-lock-members i { margin-right: 4px; }
-.btn-unlocked { background: var(--green-50); color: var(--green-700); border-color: var(--green-200); }
-.btn-unlocked:hover { background: var(--green-100); border-color: var(--green-400); }
-.btn-locked { background: var(--amber-50); color: var(--amber-600); border-color: var(--amber-600); }
-.btn-locked:hover { background: var(--amber-600); border-color: var(--red-500); }
+.btn-section-lock i { font-size: 12px; }
+.btn-section-lock.unlocked { background: var(--green-50); color: var(--green-700); border-color: var(--green-200); }
+.btn-section-lock.unlocked:hover { background: var(--green-100); border-color: var(--green-400); }
+.btn-section-lock.locked { background: var(--amber-50); color: var(--amber-600); border-color: var(--amber-600); }
+.btn-section-lock.locked:hover { background: var(--amber-600); border-color: var(--red-500); }
+@media (max-width: 480px) {
+    .section-lock-bar { padding: var(--space-2) var(--space-3); }
+    .section-lock-label { font-size: 0.65rem; }
+    .btn-section-lock { padding: 5px 8px; font-size: 10px; }
+    .btn-section-lock i { font-size: 11px; }
+}
 
 .admin-card-body { padding: 16px 20px; }
 
