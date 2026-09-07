@@ -88,8 +88,8 @@ The recent overhaul established a token-based design system across `styles.css` 
 
 ## Roles & Usage Flows
 
-- **Instructor login/signup** -- Sign up with full name + username + password; account enters pending status. An approved instructor approves it from Account > Pending Accounts. Approved instructors log in with username + password.
-- **Student login** -- Select section from dropdown, enter rater name (e.g., `DELA CRUZ, JUAN C.`). No password required. Students see only their section's groups.
+- **Instructor login/signup** -- Sign up with full name + username + password; account enters pending status. An approved instructor approves it from Account > Pending Accounts. Approved instructors log in with username + password. Auth errors (wrong password, unknown username, pending approval) display inline on the affected field; success messages still appear as toasts.
+- **Student login** -- Select section from dropdown, enter rater name (e.g., `DELA CRUZ, JUAN C.`). No password required. Auth errors (invalid name or section) display inline on the affected field. Students see only their section's groups.
 - **Rating flow** -- Students select a group from the grid, rate each rubric criterion via radio buttons (1-4), see running total, submit. Locked groups show read-only view of previous rating.
 - **PDF exports** -- Instructors can print or download PDF for Student Ratings and Rater List views (requires jsPDF loaded from CDN).
 - **Approved accounts management** -- The "Manage Approved Accounts" modal uses icon-only trash buttons (with `aria-label` per username) for a cleaner table layout. Deleting an approved account triggers a cascade: group rows and ratings for that instructor are removed. The signed-in account's own row is protected: its delete button is disabled and the handler/data layer reject deleting your own account.

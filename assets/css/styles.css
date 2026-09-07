@@ -186,13 +186,15 @@ body {
 }
 .auth-card .form-group.has-error {
   border-color: var(--red-600);
+  margin-bottom: 22px;
 }
 .auth-card .form-error {
-  position: absolute;
-  top: 100%;
-  left: 0;
+  position: static;
+  top: auto;
+  left: auto;
   margin-top: 4px;
   font-size: 11px;
+  line-height: 1.4;
   color: var(--red-600);
   display: block;
 }
@@ -281,7 +283,7 @@ body {
   background: linear-gradient(135deg, var(--green-700), var(--green-500));
   color: white; border: none; border-radius: var(--radius-md);
   font-size: 14px; font-weight: 700;
-  cursor: pointer; margin-top: 8px;
+  cursor: pointer; margin-top: 12px;
   transition: all var(--transition);
   text-transform: uppercase; letter-spacing: 1.2px;
   position: relative; overflow: hidden;
