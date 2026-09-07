@@ -280,7 +280,6 @@ async function handleLogin(e) {
         const password = document.getElementById('loginPassword').value.trim();
 
         if (!username || !password) {
-            showToast('Please fill in all fields', 'error');
             if (!username) setFieldError(document.getElementById('loginUsername'), 'Username is required');
             if (!password) setFieldError(document.getElementById('loginPassword'), 'Password is required');
             return;
@@ -303,19 +302,19 @@ async function handleLogin(e) {
                 showToast('Login successful!', 'success');
                 showInstructorDashboard();
             } else {
-                showToast(data.message, 'error');
+                setFieldError(document.getElementById('loginPassword'), 'Invalid username or password');
             }
         } catch (err) {
             console.error('Login error:', err.message, err);
-            showToast('Error: ' + err.message, 'error');
+            setFieldError(document.getElementById('loginPassword'), 'Network error');
         } finally {
             setButtonLoading(submitBtn, false);
         }
     } else {
         const name = document.getElementById('loginStudentName').value.trim();
         const section = document.getElementById('loginStudentSection').value;
-        if (!name) { showToast('Please enter your name', 'error'); setFieldError(document.getElementById('loginStudentName'), 'Rater name is required'); return; }
-        if (!section) { showToast('Please select your section', 'error'); setFieldError(document.getElementById('loginStudentSection'), 'Section is required'); return; }
+        if (!name) { setFieldError(document.getElementById('loginStudentName'), 'Rater name is required'); return; }
+        if (!section) { setFieldError(document.getElementById('loginStudentSection'), 'Section is required'); return; }
         clearFieldError(document.getElementById('loginStudentName'));
         clearFieldError(document.getElementById('loginStudentSection'));
         setButtonLoading(submitBtn, true);
@@ -336,11 +335,11 @@ async function handleLogin(e) {
                 showToast('Welcome ' + name + '!', 'success');
                 showStudentDashboard();
             } else {
-                showToast(data.message, 'error');
+                setFieldError(document.getElementById('loginStudentName'), 'User not found');
             }
         } catch (err) {
             console.error('Student login error:', err.message, err);
-            showToast('Error: ' + err.message, 'error');
+            setFieldError(document.getElementById('loginStudentName'), 'Network error');
         } finally {
             setButtonLoading(submitBtn, false);
         }
@@ -354,7 +353,6 @@ async function handleSignup(e) {
     const password = document.getElementById('signupPassword').value.trim();
 
     if (!name || !username || !password) {
-        showToast('Please fill in all fields', 'error');
         if (!name) setFieldError(document.getElementById('signupName'), 'Full name is required');
         if (!username) setFieldError(document.getElementById('signupUsername'), 'Username is required');
         if (!password) setFieldError(document.getElementById('signupPassword'), 'Password is required');
@@ -375,11 +373,11 @@ async function handleSignup(e) {
             toggleStudentNameField();
             document.getElementById('loginUsername').value = username;
         } else {
-            showToast(data.message, 'error');
+            setFieldError(document.getElementById('signupUsername'), 'Username already taken');
         }
     } catch (err) {
         console.error('Signup error:', err);
-        showToast('Network error. Please try again.', 'error');
+        setFieldError(document.getElementById('signupUsername'), 'Network error');
     } finally {
         setButtonLoading(submitBtn, false);
     }
@@ -2632,6 +2630,26 @@ function getToastContainer() {
     }
     return container;
 }
+
+// Clear auth field errors on input — contract §4.1 / §4.3: clear on interaction
+document.addEventListener('DOMContentLoaded', function() {
+    const authFieldIds = [
+        'loginUsername', 'loginPassword', 'loginStudentName',
+        'signupName', 'signupUsername', 'signupPassword'
+    ];
+    const authSectionFields = ['loginStudentSection'];
+    const clearFn = function(id) { const el = document.getElementById(id); if (el) clearFieldError(el); };
+    const clearSel = function(id) { const el = document.getElementById(id); if (el) { clearFieldError(el); if (el.tagName === 'SELECT') { el.removeAttribute('aria-invalid'); } } };
+
+    authFieldIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.addEventListener('input', function() { clearFn(id); }); }
+    });
+    authSectionFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.addEventListener('change', function() { clearSel(id); }); }
+    });
+});
 
 function showToast(message, type = 'info', duration = 3800) {
     const container = getToastContainer();
