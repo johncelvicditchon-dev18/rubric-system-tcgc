@@ -506,7 +506,7 @@ async function initStudentDashboard() {
             const statusGroupNames = Object.keys(data.groups);
             const defaultGroups = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
             const merged = new Set([...defaultGroups, ...statusGroupNames]);
-            GROUPS = [...merged].sort((a, b) => {
+            GROUPS = [...merged].filter(gn => isFixedGroup(gn) || defaultGroups.includes(gn)).sort((a, b) => {
                 const numA = parseInt(a.replace('GROUP ', ''), 10) || 0;
                 const numB = parseInt(b.replace('GROUP ', ''), 10) || 0;
                 return numA - numB;
@@ -524,7 +524,7 @@ async function initStudentDashboard() {
             const apiGroupNames = Object.keys(data.groups);
             const defaultGroups = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
             const merged = new Set([...defaultGroups, ...apiGroupNames, ...Object.keys(studentGroupStatus)]);
-            GROUPS = [...merged].sort((a, b) => {
+            GROUPS = [...merged].filter(gn => isFixedGroup(gn) || defaultGroups.includes(gn)).sort((a, b) => {
                 const numA = parseInt(a.replace('GROUP ', ''), 10) || 0;
                 const numB = parseInt(b.replace('GROUP ', ''), 10) || 0;
                 return numA - numB;
@@ -1892,7 +1892,7 @@ async function loadAdminGroupResults() {
             });
             const defaultGroups = ['GROUP 1','GROUP 2','GROUP 3','GROUP 4','GROUP 5','GROUP 6','GROUP 7','GROUP 8','GROUP 9','GROUP 10'];
             const merged = new Set([...defaultGroups, ...apiGroupNames]);
-            GROUPS = [...merged].sort((a, b) => {
+            GROUPS = [...merged].filter(gn => isFixedGroup(gn) || defaultGroups.includes(gn)).sort((a, b) => {
                 const numA = parseInt(a.replace('GROUP ', ''), 10) || 0;
                 const numB = parseInt(b.replace('GROUP ', ''), 10) || 0;
                 return numA - numB;
@@ -1960,39 +1960,15 @@ function renderAdminGroupResults(groups, hasSections) {
         </div>`;
     });
 
-    html += `<button class="btn-add-group" onclick="handleAddGroup()">
-        <i class="fas fa-plus-circle"></i> Add Another Group
-    </button>`;
+    
 
     grid.innerHTML = html;
 }
 
 // ========== GROUP MANAGEMENT ==========
-async function handleAddGroup() {
-    if (!currentSection) {
-        showToast('Create a section first to add groups', 'warning');
-        return;
-    }
-    try {
-        const data = await Api.addGroup(currentInstructor, currentSection);
-        if (data.status === 'success') {
-            const newGroupName = data.group_name;
-            if (!GROUPS.includes(newGroupName)) {
-                GROUPS.push(newGroupName);
-                GROUPS.sort((a, b) => {
-                    const numA = parseInt(a.replace('GROUP ', ''), 10) || 0;
-                    const numB = parseInt(b.replace('GROUP ', ''), 10) || 0;
-                    return numA - numB;
-                });
-            }
-            showToast(newGroupName + ' has been successfully created.', 'success');
-            loadAdminGroupResults();
-        } else {
-            showToast(data.message || 'Error creating group', 'error');
-        }
-    } catch (err) {
-        showToast('Network error', 'error');
-    }
+// Add-group removed: groups fixed to exactly 10
+function handleAddGroup() {
+    showToast('Groups are fixed to 10', 'error');
 }
 
 function handleDeleteGroup(groupName) {

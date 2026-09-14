@@ -406,6 +406,7 @@ const Api = (() => {
             });
             GROUP_NAMES.forEach(gn => existingGroups.add(gn));
             existingGroups.forEach(gn => {
+                if (!GROUP_NAMES.includes(gn)) return;
                 const g = pickGroupDoc(groups, instructor, section, gn) || {};
                 const sum = sums[gn] || { total: 0, count: 0 };
                 response[gn] = {
@@ -426,21 +427,8 @@ const Api = (() => {
 
         async addGroup(instructor, section) {
             if (!instructor) return { status: 'error', message: 'instructor parameter required' };
-            if (!section) return { status: 'error', message: 'Create a section first to add groups' };
-            const groups = await queryWhere(COLL_GROUPS, [['instructor', '==', instructor], ['section', '==', section]]);
-            const existingNums = [];
-            groups.forEach(g => {
-                const match = String(g.group_name || '').match(/^GROUP\s+(\d+)$/i);
-                if (match) existingNums.push(parseInt(match[1], 10));
-            });
-            const defaultNums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-            defaultNums.forEach(n => { if (!existingNums.includes(n)) existingNums.push(n); });
-            let nextNum = 1;
-            while (existingNums.includes(nextNum)) nextNum++;
-            const groupName = 'GROUP ' + nextNum;
-            const data = emptyGroupData(instructor, section, groupName);
-            await db.collection(COLL_GROUPS).doc(groupDocId(instructor, section, groupName)).set(data);
-            return { status: 'success', message: groupName + ' created', group_name: groupName };
+            if (!section) return { status: 'error', message: 'Groups are fixed to 10' };
+            return { status: 'error', message: 'Groups are fixed to 10' };
         },
 
         async removeGroup(instructor, section, groupName) {
@@ -605,6 +593,7 @@ const Api = (() => {
                 });
             });
             GROUP_NAMES.forEach(gn => allGroupNames.add(gn));
+            allGroupNames = new Set([...allGroupNames].filter(gn => GROUP_NAMES.includes(gn)));
             const ratingConds = [['instructor', '==', instructor]];
             if (section) ratingConds.push(['section', '==', section]);
             const ratings = await queryWhere(COLL_RATINGS, ratingConds);
@@ -646,6 +635,7 @@ const Api = (() => {
                 });
             });
             GROUP_NAMES.forEach(gn => allGroupNames.add(gn));
+            allGroupNames = new Set([...allGroupNames].filter(gn => GROUP_NAMES.includes(gn)));
             const ratingConds = [['instructor', '==', instructor]];
             if (section) ratingConds.push(['section', '==', section]);
             const ratings = await queryWhere(COLL_RATINGS, ratingConds);
