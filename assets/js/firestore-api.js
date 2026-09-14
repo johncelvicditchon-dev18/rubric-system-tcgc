@@ -583,7 +583,7 @@ const Api = (() => {
             if (section) groupConds.push(['section', '==', section]);
             const groups = await queryWhere(COLL_GROUPS, groupConds);
             const allRaters = {};
-            const allGroupNames = new Set();
+            let allGroupNames = new Set();
             groups.forEach(g => {
                 const gn = g.group_name;
                 if (gn) allGroupNames.add(gn);
@@ -625,7 +625,7 @@ const Api = (() => {
             if (section) groupConds.push(['section', '==', section]);
             const groups = await queryWhere(COLL_GROUPS, groupConds);
             const students = {};
-            const allGroupNames = new Set();
+            let allGroupNames = new Set();
             groups.forEach(g => {
                 const gn = g.group_name;
                 if (gn) allGroupNames.add(gn);
