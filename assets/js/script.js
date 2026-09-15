@@ -59,6 +59,81 @@ function clearFieldError(input) {
     if (err) err.textContent = '';
 }
 
+// — Table-cell fallback for inputs inside <td> (criteria/sections tables): no .form-group wrapper — mirrors .has-error/.form-error tokens
+function setCellError(input, message) {
+    if (!input) return;
+    const group = input.closest('.form-group');
+    if (group) { setFieldError(input, message); return; }
+    const cell = input.closest('td');
+    if (!cell) return;
+    cell.classList.add('has-cell-error');
+    input.classList.add('input-invalid');
+    input.setAttribute('aria-invalid', 'true');
+    let err = cell.querySelector('.cell-error');
+    if (!err) {
+        err = document.createElement('span');
+        err.className = 'cell-error';
+        err.setAttribute('role', 'alert');
+        if (input.id) err.id = 'err_' + input.id;
+        cell.appendChild(err);
+    }
+    err.textContent = message;
+    if (err.id) input.setAttribute('aria-describedby', err.id);
+}
+function clearCellError(input) {
+    if (!input) return;
+    const group = input.closest('.form-group');
+    if (group && group.querySelector('.form-error')) { clearFieldError(input); }
+    const cell = input.closest('td');
+    if (!cell) return;
+    cell.classList.remove('has-cell-error');
+    input.classList.remove('input-invalid');
+    input.removeAttribute('aria-invalid');
+    if (input.id) input.removeAttribute('aria-describedby');
+    const err = cell.querySelector('.cell-error');
+    if (err) err.textContent = '';
+}
+
+// — Rating row error helpers — highlights <tr> when no 1-4 selected
+function markRatingRowError(criteriaId) {
+    const tbody = document.getElementById('studentRubricBody');
+    if (!tbody) return;
+    const row = tbody.querySelector('tr[data-criteria="' + criteriaId + '"]');
+    if (!row) return;
+    row.classList.add('row-missing');
+    row.setAttribute('aria-invalid', 'true');
+    if (!row.querySelector('.row-error-msg')) {
+        const firstCell = row.querySelector('td.criteria-name');
+        if (firstCell) {
+            const msg = document.createElement('span');
+            msg.className = 'row-error-msg';
+            msg.setAttribute('role', 'alert');
+            msg.textContent = 'Select a score (1–4) for this criterion';
+            firstCell.appendChild(msg);
+        }
+    }
+}
+function clearRatingRowError(criteriaId) {
+    const tbody = document.getElementById('studentRubricBody');
+    if (!tbody) return;
+    const row = tbody.querySelector('tr[data-criteria="' + criteriaId + '"]');
+    if (!row) return;
+    row.classList.remove('row-missing');
+    row.removeAttribute('aria-invalid');
+    const msg = row.querySelector('.row-error-msg');
+    if (msg) msg.remove();
+}
+function clearAllRatingRowErrors() {
+    const tbody = document.getElementById('studentRubricBody');
+    if (!tbody) return;
+    tbody.querySelectorAll('tr.row-missing').forEach(r => {
+        r.classList.remove('row-missing');
+        r.removeAttribute('aria-invalid');
+        const m = r.querySelector('.row-error-msg');
+        if (m) m.remove();
+    });
+}
+
 async function loadLiveCriteria() {
     try {
         const data = await Api.getCriteria();
@@ -119,8 +194,10 @@ async function onSectionSelect() {
 }
 
 async function addNewSection() {
-    const name = document.getElementById('newSectionInput').value.trim().toUpperCase();
-    if (!name) { showToast('Enter a section name', 'error'); return; }
+    const nameInput = document.getElementById('newSectionInput');
+    const name = nameInput ? nameInput.value.trim().toUpperCase() : '';
+    if (!name) { if (nameInput) setCellError(nameInput, 'Section name is required'); showToast('Enter a section name', 'error'); return; }
+    if (nameInput) clearCellError(nameInput);
     const maxSc = parseInt(document.getElementById('newSectionMaxInput').value) || 1000;
     const addBtn = document.querySelector('#addSectionRow button');
     setButtonLoading(addBtn, true);
@@ -670,15 +747,16 @@ function renderStudentRubric(criteria, existing) {
         let cells = '';
         levels.forEach(lv => {
             const checked = (prev[c.id] === lv.v) ? ' checked' : '';
-            cells += `<td><label class="radio-label-cell"><input type="radio" name="${rname}" value="${lv.v}" class="student-radio" data-criteria="${c.id}" onchange="updateStudentScore()"${checked}${disabled}><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">${lv.label}</span><span class="radio-desc">${escHtml(c[lv.key] || '')}</span></span></label></td>`;
+            cells += `<td><label class="radio-label-cell"><input type="radio" name="${rname}" value="${lv.v}" class="student-radio" data-criteria="${c.id}" onchange="updateStudentScore(); clearRatingRowError('${c.id}')"${checked}${disabled}><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">${lv.label}</span><span class="radio-desc">${escHtml(c[lv.key] || '')}</span></span></label></td>`;
         });
-        tbody.innerHTML += `<tr><td class="criteria-name">${escHtml(c.name)}</td>${cells}<td class="score-cell"><span class="radio-score" id="score_${c.id}">0</span></td></tr>`;
+        tbody.innerHTML += `<tr data-criteria="${c.id}"><td class="criteria-name">${escHtml(c.name)}</td>${cells}<td class="score-cell"><span class="radio-score" id="score_${c.id}">0</span></td></tr>`;
     });
 }
 
 function closeStudentRating() {
     studentCurrentGroup = null;
     studentRatingReadOnly = false;
+    clearAllRatingRowErrors();
     document.querySelectorAll('.student-radio').forEach(r => { r.disabled = false; });
     document.getElementById('studentGroupsView').style.display = 'block';
     document.getElementById('studentRatingView').style.display = 'none';
@@ -730,8 +808,23 @@ async function handleSaveStudentRating() {
 
     const scores = {};
     let total = 0;
-    const checkedCount = document.querySelectorAll('.student-radio:checked').length;
-    if (checkedCount < liveCriteria.length) { showToast('Please select a score for all criteria', 'error'); return; }
+    // Per-row validation: highlight rows missing selection before blocking submit
+    clearAllRatingRowErrors();
+    const missing = [];
+    liveCriteria.forEach(c => {
+        const checked = document.querySelector('input[name="rubric_' + c.id + '"]:checked');
+        if (!checked) { markRatingRowError(c.id); missing.push(c.id); }
+    });
+    if (missing.length > 0) {
+        showToast('Please select a score for all criteria', 'error');
+        const firstRow = document.querySelector('#studentRubricBody tr.row-missing');
+        if (firstRow) {
+            firstRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const firstRadio = firstRow.querySelector('input.student-radio');
+            if (firstRadio) { try { firstRadio.focus({ preventScroll: true }); } catch(e) { firstRadio.focus(); } }
+        }
+        return;
+    }
     document.querySelectorAll('.student-radio:checked').forEach(r => {
         const val = parseInt(r.value) || 0;
         scores[r.getAttribute('data-criteria')] = val;
@@ -1755,8 +1848,10 @@ function slugifyCriterion(name) {
 }
 
 async function addNewCriterion() {
-    const name = document.getElementById('newCriterionName').value.trim();
-    if (!name) { showToast('Enter a criterion name', 'error'); return; }
+    const nameInput = document.getElementById('newCriterionName');
+    const name = nameInput ? nameInput.value.trim() : '';
+    if (!name) { if (nameInput) setCellError(nameInput, 'Criterion name is required'); showToast('Enter a criterion name', 'error'); return; }
+    if (nameInput) clearCellError(nameInput);
     if (liveCriteria.length >= 20) { showToast('Maximum of 20 criteria reached.', 'error'); return; }
 
     const slug = slugifyCriterion(name);
@@ -1795,8 +1890,10 @@ async function addNewCriterion() {
 }
 
 async function saveCriterionRow(id) {
-    const name = document.getElementById('crit_name_' + id).value.trim();
-    if (!name) { showToast('Criterion name cannot be empty', 'error'); return; }
+    const nameInput = document.getElementById('crit_name_' + id);
+    const name = nameInput ? nameInput.value.trim() : '';
+    if (!name) { if (nameInput) setCellError(nameInput, 'Criterion name is required'); showToast('Criterion name cannot be empty', 'error'); return; }
+    if (nameInput) clearCellError(nameInput);
     const idx = liveCriteria.findIndex(c => c.id === id);
     const rec = {
         id: id,
@@ -2857,5 +2954,18 @@ document.addEventListener('keydown', function (e) {
 
 // --- Inline validation: clear the error state as the user types — contract §2.2
 document.addEventListener('input', function (e) {
-    if (e.target && e.target.closest && e.target.closest('.form-group')) clearFieldError(e.target);
+    if (!e.target || !e.target.closest) return;
+    if (e.target.closest('.form-group')) clearFieldError(e.target);
+    if (e.target.closest('td')) clearCellError(e.target);
+    // Clear per-row criteria edit error and add-row criterion/section errors
+    if (e.target.id === 'newCriterionName' || e.target.id === 'newSectionInput' || (e.target.id && e.target.id.startsWith('crit_name_'))) {
+        clearCellError(e.target);
+    }
+});
+// Rating row: any radio change clears that row's missing indicator
+document.addEventListener('change', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('student-radio')) {
+        const cid = e.target.getAttribute('data-criteria');
+        if (cid) clearRatingRowError(cid);
+    }
 });
