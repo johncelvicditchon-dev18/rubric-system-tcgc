@@ -1849,9 +1849,22 @@ function slugifyCriterion(name) {
 
 async function addNewCriterion() {
     const nameInput = document.getElementById('newCriterionName');
+    const d4Input = document.getElementById('newCriterionDesc4');
+    const d3Input = document.getElementById('newCriterionDesc3');
+    const d2Input = document.getElementById('newCriterionDesc2');
+    const d1Input = document.getElementById('newCriterionDesc1');
+    let hasError = false;
     const name = nameInput ? nameInput.value.trim() : '';
-    if (!name) { if (nameInput) setCellError(nameInput, 'Criterion name is required'); showToast('Enter a criterion name', 'error'); return; }
-    if (nameInput) clearCellError(nameInput);
+    const d4 = d4Input ? d4Input.value.trim() : '';
+    const d3 = d3Input ? d3Input.value.trim() : '';
+    const d2 = d2Input ? d2Input.value.trim() : '';
+    const d1 = d1Input ? d1Input.value.trim() : '';
+    if (!name) { if (nameInput) setCellError(nameInput, 'Criterion name is required'); hasError = true; } else if (nameInput) clearCellError(nameInput);
+    if (!d4) { if (d4Input) setCellError(d4Input, 'Excellent (4) description is required'); hasError = true; } else if (d4Input) clearCellError(d4Input);
+    if (!d3) { if (d3Input) setCellError(d3Input, 'Good (3) description is required'); hasError = true; } else if (d3Input) clearCellError(d3Input);
+    if (!d2) { if (d2Input) setCellError(d2Input, 'Fair (2) description is required'); hasError = true; } else if (d2Input) clearCellError(d2Input);
+    if (!d1) { if (d1Input) setCellError(d1Input, 'Needs Improvement (1) description is required'); hasError = true; } else if (d1Input) clearCellError(d1Input);
+    if (hasError) { showToast('Please fill in all criterion fields', 'error'); const first = [nameInput,d4Input,d3Input,d2Input,d1Input].find(el => el && el.classList.contains('input-invalid')); if (first) try{first.focus();}catch(e){} return; }
     if (liveCriteria.length >= 20) { showToast('Maximum of 20 criteria reached.', 'error'); return; }
 
     const slug = slugifyCriterion(name);
@@ -1860,10 +1873,10 @@ async function addNewCriterion() {
     const rec = {
         id: id,
         name: name,
-        desc4: document.getElementById('newCriterionDesc4').value.trim(),
-        desc3: document.getElementById('newCriterionDesc3').value.trim(),
-        desc2: document.getElementById('newCriterionDesc2').value.trim(),
-        desc1: document.getElementById('newCriterionDesc1').value.trim(),
+        desc4: d4,
+        desc3: d3,
+        desc2: d2,
+        desc1: d1,
         position: liveCriteria.length
     };
 
@@ -1891,17 +1904,30 @@ async function addNewCriterion() {
 
 async function saveCriterionRow(id) {
     const nameInput = document.getElementById('crit_name_' + id);
+    const d4Input = document.getElementById('crit_desc4_' + id);
+    const d3Input = document.getElementById('crit_desc3_' + id);
+    const d2Input = document.getElementById('crit_desc2_' + id);
+    const d1Input = document.getElementById('crit_desc1_' + id);
+    let hasError = false;
     const name = nameInput ? nameInput.value.trim() : '';
-    if (!name) { if (nameInput) setCellError(nameInput, 'Criterion name is required'); showToast('Criterion name cannot be empty', 'error'); return; }
-    if (nameInput) clearCellError(nameInput);
+    const d4 = d4Input ? d4Input.value.trim() : '';
+    const d3 = d3Input ? d3Input.value.trim() : '';
+    const d2 = d2Input ? d2Input.value.trim() : '';
+    const d1 = d1Input ? d1Input.value.trim() : '';
+    if (!name) { if (nameInput) setCellError(nameInput, 'Criterion name is required'); hasError = true; } else if (nameInput) clearCellError(nameInput);
+    if (!d4) { if (d4Input) setCellError(d4Input, 'Excellent (4) description is required'); hasError = true; } else if (d4Input) clearCellError(d4Input);
+    if (!d3) { if (d3Input) setCellError(d3Input, 'Good (3) description is required'); hasError = true; } else if (d3Input) clearCellError(d3Input);
+    if (!d2) { if (d2Input) setCellError(d2Input, 'Fair (2) description is required'); hasError = true; } else if (d2Input) clearCellError(d2Input);
+    if (!d1) { if (d1Input) setCellError(d1Input, 'Needs Improvement (1) description is required'); hasError = true; } else if (d1Input) clearCellError(d1Input);
+    if (hasError) { showToast('Please fill in all criterion fields', 'error'); const first = [nameInput,d4Input,d3Input,d2Input,d1Input].find(el => el && el.classList.contains('input-invalid')); if (first) try{first.focus();}catch(e){} return; }
     const idx = liveCriteria.findIndex(c => c.id === id);
     const rec = {
         id: id,
         name: name,
-        desc4: document.getElementById('crit_desc4_' + id).value.trim(),
-        desc3: document.getElementById('crit_desc3_' + id).value.trim(),
-        desc2: document.getElementById('crit_desc2_' + id).value.trim(),
-        desc1: document.getElementById('crit_desc1_' + id).value.trim(),
+        desc4: d4,
+        desc3: d3,
+        desc2: d2,
+        desc1: d1,
         position: idx >= 0 ? liveCriteria[idx].position : liveCriteria.length
     };
     try {
