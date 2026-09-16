@@ -2119,8 +2119,12 @@ body {
   color: var(--red-700) !important;
   font-weight: 800;
 }
+.criteria-name-text {
+  display: block;
+}
 .row-error-msg {
-  display: inline-block;
+  display: block;
+  width: fit-content;
   font-size: 11px;
   color: var(--red-700);
   background: #ffffff;

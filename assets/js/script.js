@@ -105,7 +105,7 @@ function markRatingRowError(criteriaId) {
     if (!row.querySelector('.row-error-msg')) {
         const firstCell = row.querySelector('td.criteria-name');
         if (firstCell) {
-            const msg = document.createElement('span');
+            const msg = document.createElement('div');
             msg.className = 'row-error-msg';
             msg.setAttribute('role', 'alert');
             msg.textContent = 'Select a score (1–4) for this criterion';
@@ -749,7 +749,7 @@ function renderStudentRubric(criteria, existing) {
             const checked = (prev[c.id] === lv.v) ? ' checked' : '';
             cells += `<td><label class="radio-label-cell"><input type="radio" name="${rname}" value="${lv.v}" class="student-radio" data-criteria="${c.id}" onchange="updateStudentScore(); clearRatingRowError('${c.id}')"${checked}${disabled}><span class="radio-circle"></span><span class="radio-text"><span class="radio-score-label">${lv.label}</span><span class="radio-desc">${escHtml(c[lv.key] || '')}</span></span></label></td>`;
         });
-        tbody.innerHTML += `<tr data-criteria="${c.id}"><td class="criteria-name">${escHtml(c.name)}</td>${cells}<td class="score-cell"><span class="radio-score" id="score_${c.id}">0</span></td></tr>`;
+        tbody.innerHTML += `<tr data-criteria="${c.id}"><td class="criteria-name"><span class="criteria-name-text">${escHtml(c.name)}</span></td>${cells}<td class="score-cell"><span class="radio-score" id="score_${c.id}">0</span></td></tr>`;
     });
 }
 
