@@ -633,15 +633,18 @@ function renderStudentGroups() {
         }
         const isClosed = studentGroupStatus[gn] === 1;
         const isOwnGroup = currentStudentGroup === gn;
+        // Own group is never shown as LOCKED — the rater cannot rate their own
+        // group anyway, so it stays clearly visible as YOUR GROUP even when locked.
+        const isLockedForRater = isClosed && !isOwnGroup;
 
         const card = document.createElement('div');
-        card.className = `student-group-card ${hasRated ? 'rated' : ''} ${isClosed ? 'closed' : ''} ${isOwnGroup ? 'own-group' : ''}`;
+        card.className = `student-group-card ${hasRated ? 'rated' : ''} ${isLockedForRater ? 'closed' : ''} ${isOwnGroup ? 'own-group' : ''}`;
 
         let statusHtml = '';
-        if (isClosed) {
-            statusHtml = '<span class="closed-badge"><i class="fas fa-lock"></i> LOCKED</span>';
-        } else if (isOwnGroup) {
+        if (isOwnGroup) {
             statusHtml = '<span class="own-group-badge"><i class="fas fa-home"></i> YOUR GROUP</span>';
+        } else if (isClosed) {
+            statusHtml = '<span class="closed-badge"><i class="fas fa-lock"></i> LOCKED</span>';
         } else if (hasRated) {
             statusHtml = `<span class="score-badge">${displayScore}/${criteriaDenominator()}</span>`;
         } else {
@@ -649,10 +652,10 @@ function renderStudentGroups() {
         }
 
         let btnHtml = '';
-        if (isClosed) {
-            btnHtml = `<button class="btn btn-rate-card btn-disabled" disabled><i class="fas fa-lock"></i> Locked - Cannot Rate</button>`;
-        } else if (isOwnGroup) {
+        if (isOwnGroup) {
             btnHtml = `<button class="btn btn-rate-card btn-disabled" disabled><i class="fas fa-ban"></i> Cannot Rate Own Group</button>`;
+        } else if (isClosed) {
+            btnHtml = `<button class="btn btn-rate-card btn-disabled" disabled><i class="fas fa-lock"></i> Locked - Cannot Rate</button>`;
         } else if (hasRated) {
             btnHtml = `<button class="btn btn-rate-card" onclick="openStudentGroupRating('${gn}')"><i class="fas fa-edit"></i> Update Rating</button>`;
         } else {
@@ -664,7 +667,7 @@ function renderStudentGroups() {
             <div class="group-card-name">${gn}</div>
             <div class="group-card-status">${statusHtml}</div>
             ${btnHtml}
-            ${isClosed ? '<div class="locked-overlay"><i class="fas fa-lock"></i></div>' : ''}
+            ${isLockedForRater ? '<div class="locked-overlay"><i class="fas fa-lock"></i></div>' : ''}
         `;
         container.appendChild(card);
     });
@@ -687,6 +690,11 @@ async function openStudentGroupRating(groupName) {
 
     const isClosed = studentGroupStatus[groupName] === 1;
 
+    if (currentStudentGroup && currentStudentGroup === groupName) {
+        showToast('You cannot rate your own group', 'error');
+        return;
+    }
+
     if (isClosed) {
         showToast('This group is LOCKED and cannot be rated', 'error');
         return;
@@ -694,11 +702,6 @@ async function openStudentGroupRating(groupName) {
 
     const existing = studentRatings[groupName];
     const hasRating = existing && existing.total_score > 0;
-
-    if (currentStudentGroup && currentStudentGroup === groupName) {
-        showToast('You cannot rate your own group', 'error');
-        return;
-    }
 
     studentCurrentGroup = groupName;
     studentRatingReadOnly = isClosed && hasRating;
