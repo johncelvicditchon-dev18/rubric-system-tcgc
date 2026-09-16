@@ -2050,7 +2050,7 @@ function renderAdminGroupResults(groups, hasSections) {
         const isOpen = grp.is_closed === 0;
         const fixed = isFixedGroup(gn);
         const deleteBtnHtml = fixed
-            ? '<span class="fixed-group-badge" title="Groups 1-10 cannot be deleted"><i class="fas fa-thumbtack"></i> FIXED</span>'
+            ? ''
             : `<button class="btn-delete-group" onclick="handleDeleteGroup('${gn}')" title="Delete ${gn}">
                         <i class="fas fa-trash-alt"></i> Delete
                     </button>`;
@@ -2070,7 +2070,7 @@ function renderAdminGroupResults(groups, hasSections) {
                 </div>
             </div>
             <div class="admin-card-body">
-                <label class="admin-member-label">Members (Optional)</label>
+                <label class="admin-member-label">Members</label>
                 <div class="admin-member-inputs">
                     <input type="text" class="admin-member-input u-text-upper" id="member1_${gn.replace(' ', '_')}" placeholder="Member 1" aria-label="Member 1" value="${escHtml(grp.member1_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}>
                     <input type="text" class="admin-member-input u-text-upper" id="member4_${gn.replace(' ', '_')}" placeholder="Member 4" aria-label="Member 4" value="${escHtml(grp.member4_name)}" oninput="debouncedSaveMembers('${escHtml(gn)}')"${memberInputDisabled}>
