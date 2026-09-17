@@ -120,6 +120,13 @@ const Api = (() => {
         return groups.find(g => MEMBER_FIELDS.some(f => String(g[f] || '').trim().toUpperCase() === nm)) || null;
     }
 
+    async function findGroupsByMember(name, section) {
+        const nm = String(name || '').trim().toUpperCase();
+        const conds = section ? [['section', '==', section]] : [];
+        const groups = await queryWhere(COLL_GROUPS, conds);
+        return groups.filter(g => MEMBER_FIELDS.some(f => String(g[f] || '').trim().toUpperCase() === nm));
+    }
+
     async function renameRaterRatings(oldName, newName, instructor) {
         const docs = await queryWhere(COLL_RATINGS, [['rater_name', '==', oldName], ['instructor', '==', instructor]]);
         for (let i = 0; i < docs.length; i += 450) {
@@ -196,16 +203,19 @@ const Api = (() => {
             const nm = String(name || '').trim().toUpperCase();
             if (!nm) return { status: 'error', message: 'Please enter your name' };
             if (!section) return { status: 'error', message: 'Please select your section' };
-            const grp = await findGroupByMember(nm, section);
-            if (!grp) return { status: 'error', message: 'Name not found in the selected section. Please ask your instructor to register you first.' };
+            const matches = await findGroupsByMember(nm, section);
+            if (!matches || matches.length === 0) return { status: 'error', message: 'Name not found in the selected section. Please ask your instructor to register you first.' };
+            const grp = matches[0];
+            const groupNames = [...new Set(matches.map(g => g.group_name).filter(Boolean))].sort();
             return {
                 status: 'success',
                 message: 'Welcome, ' + nm + '!',
                 name: nm,
                 instructor: grp.instructor,
                 group: grp.group_name,
+                groups: groupNames,
                 section: grp.section || section,
-                student: { id: grp.id, name: nm, group: grp.group_name, instructor: grp.instructor, section: grp.section || section }
+                student: { id: grp.id, name: nm, group: grp.group_name, groups: groupNames, instructor: grp.instructor, section: grp.section || section }
             };
         },
 

@@ -2,7 +2,26 @@ let currentUserRole = null;
 let currentUserName = null;
 let currentInstructor = null;
 let currentStudentGroup = null;
+let currentStudentGroups = [];
 let currentStudentSection = '';
+
+function isOwnGroup(groupName) {
+    if (Array.isArray(currentStudentGroups) && currentStudentGroups.length) {
+        return currentStudentGroups.includes(groupName);
+    }
+    return !!currentStudentGroup && currentStudentGroup === groupName;
+}
+
+function syncStudentGroups(singleGroup, multiGroups) {
+    if (Array.isArray(multiGroups) && multiGroups.length) {
+        currentStudentGroups = [...new Set(multiGroups.filter(Boolean))];
+    } else if (singleGroup) {
+        currentStudentGroups = [singleGroup];
+    } else {
+        currentStudentGroups = [];
+    }
+    currentStudentGroup = currentStudentGroups[0] || singleGroup || null;
+}
 let currentSection = '';
 let currentMaxScore = 1000;
 let sectionMembersLocked = false;
@@ -288,12 +307,14 @@ function initAuth() {
     const savedName = sessionStorage.getItem('userName');
     const savedInstructor = sessionStorage.getItem('instructorName');
     const savedGroup = sessionStorage.getItem('studentGroup');
+    let savedGroups = null;
+    try { savedGroups = JSON.parse(sessionStorage.getItem('studentGroups') || 'null'); } catch (e) { savedGroups = null; }
 
     if (savedRole && savedName) {
         currentUserRole = savedRole;
         currentUserName = savedName;
         currentInstructor = savedInstructor || savedName;
-        currentStudentGroup = savedGroup;
+        syncStudentGroups(savedGroup, savedGroups);
         currentStudentSection = sessionStorage.getItem('studentSection') || '';
 
         if (currentUserRole === 'student') {
@@ -399,15 +420,17 @@ async function handleLogin(e) {
             const data = await Api.studentLogin(name, section);
 
             if (data.status === 'success') {
+                const loginGroups = Array.isArray(data.groups) && data.groups.length ? data.groups : (data.group ? [data.group] : []);
                 sessionStorage.setItem('userRole', 'student');
                 sessionStorage.setItem('userName', name);
                 sessionStorage.setItem('instructorName', data.instructor);
                 sessionStorage.setItem('studentGroup', data.group);
+                sessionStorage.setItem('studentGroups', JSON.stringify(loginGroups));
                 sessionStorage.setItem('studentSection', data.section || '');
                 currentUserRole = 'student';
                 currentUserName = name.toUpperCase();
                 currentInstructor = data.instructor;
-                currentStudentGroup = data.group;
+                syncStudentGroups(data.group, loginGroups);
                 currentStudentSection = data.section || '';
                 showToast('Welcome ' + name + '!', 'success');
                 showStudentDashboard();
@@ -632,16 +655,18 @@ function renderStudentGroups() {
             displayScore = rating.total_score;
         }
         const isClosed = studentGroupStatus[gn] === 1;
-        const isOwnGroup = currentStudentGroup === gn;
+        const isOwn = isOwnGroup(gn);
         // Own group is never shown as LOCKED — the rater cannot rate their own
         // group anyway, so it stays clearly visible as YOUR GROUP even when locked.
-        const isLockedForRater = isClosed && !isOwnGroup;
+        // This supports members registered in multiple groups: every matching
+        // group renders YOUR GROUP + "Cannot Rate Own Group" like Image 1.
+        const isLockedForRater = isClosed && !isOwn;
 
         const card = document.createElement('div');
-        card.className = `student-group-card ${hasRated ? 'rated' : ''} ${isLockedForRater ? 'closed' : ''} ${isOwnGroup ? 'own-group' : ''}`;
+        card.className = `student-group-card ${hasRated ? 'rated' : ''} ${isLockedForRater ? 'closed' : ''} ${isOwn ? 'own-group' : ''}`;
 
         let statusHtml = '';
-        if (isOwnGroup) {
+        if (isOwn) {
             statusHtml = '<span class="own-group-badge"><i class="fas fa-home"></i> YOUR GROUP</span>';
         } else if (isClosed) {
             statusHtml = '<span class="closed-badge"><i class="fas fa-lock"></i> LOCKED</span>';
@@ -652,7 +677,7 @@ function renderStudentGroups() {
         }
 
         let btnHtml = '';
-        if (isOwnGroup) {
+        if (isOwn) {
             btnHtml = `<button class="btn btn-rate-card btn-disabled" disabled><i class="fas fa-ban"></i> Cannot Rate Own Group</button>`;
         } else if (isClosed) {
             btnHtml = `<button class="btn btn-rate-card btn-disabled" disabled><i class="fas fa-lock"></i> Locked - Cannot Rate</button>`;
@@ -690,7 +715,7 @@ async function openStudentGroupRating(groupName) {
 
     const isClosed = studentGroupStatus[groupName] === 1;
 
-    if (currentStudentGroup && currentStudentGroup === groupName) {
+    if (isOwnGroup(groupName)) {
         showToast('You cannot rate your own group', 'error');
         return;
     }
@@ -783,6 +808,11 @@ async function handleSaveStudentRating() {
     if (!studentCurrentGroup) return;
     if (!GROUPS.includes(studentCurrentGroup)) {
         showToast('This group no longer exists and cannot be rated', 'error');
+        await initStudentDashboard();
+        return;
+    }
+    if (isOwnGroup(studentCurrentGroup)) {
+        showToast('You cannot rate your own group', 'error');
         await initStudentDashboard();
         return;
     }
@@ -2577,6 +2607,7 @@ function handleLogout(e) {
     currentUserName = null;
     currentInstructor = null;
     currentStudentGroup = null;
+    currentStudentGroups = [];
     currentStudentSection = '';
     currentSection = '';
     currentMaxScore = 1000;
